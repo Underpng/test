@@ -1,70 +1,49 @@
-import { useEffect, useState } from "react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
+import { useState } from "react";
+import { Link, useLocation } from "react-router-dom";
+import { ChevronRight } from "lucide-react";
 import type { SortKey, SortOrder } from "@/api/interface";
 import { InfiniteBookList } from "@/components/infinite_book_list";
-import { useLocation } from "react-router-dom";
-
-const sortOptions: { label: string; value: SortKey }[] = [
-	{ label: "Title", value: "title" },
-	{ label: "Date Added", value: "added_time" },
-	{ label: "Last Opened", value: "last_opened" },
-	{ label: "Progress", value: "progress" },
-];
+import { SortControls } from "@/components/sort-controls";
 
 export default function RootPage() {
-	const location = useLocation()
-	const [decodedName, setDecodedName] = useState("")
-	const [sortKey, setSortKey] = useState<SortKey>("title")
-	const [sortOrder, setSortOrder] = useState<SortOrder>("asc")
-	const [apiEndpoint, setApiEndpoint] = useState("/api/root")
+	const location = useLocation();
+	const [sortKey, setSortKey] = useState<SortKey>("title");
+	const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
 
-	useEffect(() => {
-		const path = location.pathname
-		setApiEndpoint(`/api${path}`)
-
-		if (path === "/root") {
-			setDecodedName("Root")
-			return
-		}
-
-		const segments = path.split("/")
-		const lastSegment = segments[segments.length - 1] || segments[segments.length - 2]
-		const decoded = decodeURIComponent(lastSegment)
-		setDecodedName(decoded)
-	}, [location.pathname])
+	// "/root/A/B" -> ["A", "B"]
+	const segments = location.pathname
+		.replace(/^\/root\/?/, "")
+		.split("/")
+		.filter(Boolean)
+		.map(decodeURIComponent);
+	const title = segments.length > 0 ? segments[segments.length - 1] : "本棚";
+	const apiEndpoint = `/api${location.pathname}`;
 
 	return (
-		<div className="p-6 space-y-6 w-full">
-			<div className="flex items-center gap-4 w-full">
-				<h1 className="text-2xl font-semibold flex-shrink-0">{decodedName}</h1>
-
-				<div className="flex items-center gap-6 ml-auto flex-shrink-0">
-					<Select value={sortKey} onValueChange={(v) => setSortKey(v as SortKey)}>
-						<SelectTrigger className="w-[200px]">
-							<SelectValue placeholder="Sort by" />
-						</SelectTrigger>
-						<SelectContent>
-							{sortOptions.map((opt) => (
-								<SelectItem key={opt.value} value={opt.value}>
-									{opt.label}
-								</SelectItem>
-							))}
-						</SelectContent>
-					</Select>
-
-					<div className="flex items-center gap-2">
-						<Switch
-							id="order-switch"
-							checked={sortOrder === "asc"}
-							onCheckedChange={(checked) =>
-								setSortOrder(checked ? "asc" : "desc")
-							}
-						/>
-						<Label className="w-[80px]">{sortOrder === "asc" ? "Ascending" : "Descending"}</Label>
-					</div>
-				</div>
+		<div className="mx-auto max-w-6xl space-y-5 px-4 py-4 md:px-8 md:py-8">
+			{segments.length > 0 && (
+				<nav aria-label="パンくず" className="flex flex-wrap items-center gap-1 text-sm text-muted-foreground">
+					<Link to="/root" className="hover:text-foreground">本棚</Link>
+					{segments.slice(0, -1).map((seg, i) => (
+						<span key={i} className="flex items-center gap-1">
+							<ChevronRight size={14} />
+							<Link to={"/root/" + segments.slice(0, i + 1).map(encodeURIComponent).join("/")} className="hover:text-foreground">
+								{seg}
+							</Link>
+						</span>
+					))}
+				</nav>
+			)}
+			<div className="flex flex-wrap items-center gap-3">
+				<h1 className="min-w-0 flex-1 truncate text-2xl font-semibold md:text-3xl">{title}</h1>
+				<SortControls
+					sortKey={sortKey}
+					sortOrder={sortOrder}
+					onChange={(k, o) => {
+						setSortKey(k);
+						setSortOrder(o);
+					}}
+				/>
 			</div>
 
 			<InfiniteBookList

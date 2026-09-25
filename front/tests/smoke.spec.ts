@@ -23,16 +23,11 @@ async function findFirstCbz(page: Page): Promise<Book | null> {
 	return null;
 }
 
-test("home page renders", async ({ page, isMobile }) => {
+test("home page renders", async ({ page }) => {
 	await page.goto("/");
 	await expect(page.getByRole("heading", { name: "ホーム" })).toBeVisible();
-	if (isMobile) {
-		// The sidebar is collapsed on phones; only its trigger button is shown.
-		await expect(page.getByRole("button", { name: /sidebar/i })).toBeVisible();
-	} else {
-		await expect(page.getByText("shelf | Book")).toBeVisible();
-		await expect(page.getByRole("link", { name: "Root" })).toBeVisible();
-	}
+	// Navigation is a bottom bar on phones and a rail on desktop; both carry the same links.
+	await expect(page.getByRole("link", { name: "本棚" })).toBeVisible();
 });
 
 test("root lists the library", async ({ page }) => {

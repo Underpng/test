@@ -1,23 +1,15 @@
-import { SidebarProvider, SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
-import { AppSidebar } from "./components/app-sidebar";
 import { Outlet } from "react-router-dom";
-
-function Trigger() {
-    const { open, openMobile, isMobile } = useSidebar();
-
-    if (isMobile ? openMobile : open) {
-        return null;
-    }
-
-    return <SidebarTrigger className="fixed h-9 w-9 [&_svg]:size-7" />
-}
+import { BottomNav, NavRail, TopBar } from "@/components/nav";
 
 export default function Layout() {
     return (
-        <SidebarProvider>
-            <AppSidebar />
-            <Trigger />
-            <Outlet />
-        </SidebarProvider >
+        <div className="min-h-screen bg-background text-foreground">
+            <NavRail />
+            <TopBar />
+            <main className="pb-24 md:pb-10 md:pl-20">
+                <Outlet />
+            </main>
+            <BottomNav />
+        </div>
     );
 }

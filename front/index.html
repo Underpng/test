@@ -7,6 +7,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/favicon.ico" />
     <title>shelf | Book</title>
+    <meta name="theme-color" content="#FFF8F5" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#170F0B" media="(prefers-color-scheme: dark)" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <script>
+        // Apply the theme before the app renders to avoid a flash.
+        (function () {
+            try {
+                var t = localStorage.getItem("theme");
+                var dark = t === "dark" || (t !== "light" && matchMedia("(prefers-color-scheme: dark)").matches);
+                if (dark) document.documentElement.classList.add("dark");
+            } catch (e) { }
+        })();
+    </script>
 </head>
 
 <body>

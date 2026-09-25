@@ -1,67 +1,65 @@
-import { useState } from "react"
-import { Input } from "@/components/ui/input"  // 追加
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Switch } from "@/components/ui/switch"
-import { Label } from "@/components/ui/label"
+import { useEffect, useState } from "react"
+import { Search, X } from "lucide-react"
 import type { SortKey, SortOrder } from "@/api/interface"
 import { InfiniteBookList } from "@/components/infinite_book_list"
-
-const sortOptions: { label: string; value: SortKey }[] = [
-	{ label: "Title", value: "title" },
-	{ label: "Date Added", value: "added_time" },
-	{ label: "Last Opened", value: "last_opened" },
-	{ label: "Progress", value: "progress" },
-]
+import { SortControls } from "@/components/sort-controls"
 
 export default function SearchPage() {
 	const [sortKey, setSortKey] = useState<SortKey>("title")
 	const [sortOrder, setSortOrder] = useState<SortOrder>("asc")
-	const [searchQuery, setSearchQuery] = useState("")
+	const [text, setText] = useState("")
+	const [query, setQuery] = useState("")
+
+	// Search as you type, lightly debounced.
+	useEffect(() => {
+		const t = window.setTimeout(() => setQuery(text.trim()), 250)
+		return () => window.clearTimeout(t)
+	}, [text])
 
 	return (
-		<div className="p-6 space-y-6 w-full">
-			<div className="flex items-center gap-4 w-full">
-				<Input
-					type="search"
-					placeholder="Search books..."
-					value={searchQuery}
-					onChange={(e) => setSearchQuery(e.target.value)}
-					className="flex-grow max-w-[33rem]"
+		<div className="mx-auto max-w-6xl space-y-5 px-4 py-4 md:px-8 md:py-8">
+			<h1 className="text-2xl font-semibold md:text-3xl">検索</h1>
+			<div className="flex flex-wrap items-center gap-3">
+				<label className="flex h-12 min-w-0 flex-1 items-center gap-3 rounded-full bg-surface-high px-4 focus-within:ring-2 focus-within:ring-ring">
+					<Search size={20} className="flex-shrink-0 text-muted-foreground" />
+					<input
+						type="search"
+						value={text}
+						onChange={(e) => setText(e.target.value)}
+						placeholder="タイトルの先頭、または #著者名"
+						autoFocus
+						enterKeyHint="search"
+						className="min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground"
+					/>
+					{text && (
+						<button type="button" onClick={() => setText("")} aria-label="クリア" className="text-muted-foreground">
+							<X size={18} />
+						</button>
+					)}
+				</label>
+				<SortControls
+					sortKey={sortKey}
+					sortOrder={sortOrder}
+					onChange={(k, o) => {
+						setSortKey(k)
+						setSortOrder(o)
+					}}
 				/>
-
-				<div className="flex items-center gap-6 ml-auto flex-shrink-0">
-					<Select value={sortKey} onValueChange={(v) => setSortKey(v as SortKey)}>
-						<SelectTrigger className="w-[200px]">
-							<SelectValue placeholder="Sort by" />
-						</SelectTrigger>
-						<SelectContent>
-							{sortOptions.map((opt) => (
-								<SelectItem key={opt.value} value={opt.value}>
-									{opt.label}
-								</SelectItem>
-							))}
-						</SelectContent>
-					</Select>
-
-					<div className="flex items-center gap-2">
-						<Switch
-							id="order-switch"
-							checked={sortOrder === "asc"}
-							onCheckedChange={(checked) =>
-								setSortOrder(checked ? "asc" : "desc")
-							}
-						/>
-						<Label className="w-[80px]">{sortOrder === "asc" ? "Ascending" : "Descending"}</Label>
-					</div>
-				</div>
 			</div>
 
-			<InfiniteBookList
-				apiEndpoint="/api/search"
-				sortKey={sortKey}
-				sortOrder={sortOrder}
-				q={encodeURIComponent(searchQuery.trim())}
-			/>
+			{query ? (
+				<InfiniteBookList
+					key={`${query}-${sortKey}-${sortOrder}`}
+					apiEndpoint="/api/search"
+					sortKey={sortKey}
+					sortOrder={sortOrder}
+					q={encodeURIComponent(query)}
+				/>
+			) : (
+				<p className="py-12 text-center text-sm text-muted-foreground">
+					タイトルの先頭文字で探せます。EPUB や PDF は「#著者名」「#タグ」でも検索できます。
+				</p>
+			)}
 		</div>
 	)
 }

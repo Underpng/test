@@ -2,91 +2,104 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+  Material 3 style tokens with a warm (orange) seed. Values are HSL triplets
+  so Tailwind can apply opacity modifiers (see tailwind.config.js).
+  Light values live on :root, dark ones under .dark (set by lib/theme.ts
+  from the OS preference or the user's choice).
+*/
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* surfaces (tonal elevation: low -> highest) */
+    --background: 24 100% 98%;          /* surface        #FFF8F5 */
+    --surface-low: 22 80% 96%;          /* container-low  #FDF1EB */
+    --surface: 20 55% 94%;              /* container      #F7EBE5 */
+    --surface-high: 20 45% 91%;         /* container-high #F1E4DE */
+    --surface-highest: 20 40% 89%;      /* container-highest */
+    --foreground: 15 22% 11%;           /* on-surface     #221A16 */
+    --muted-foreground: 14 12% 33%;     /* on-surface-variant #5D4038-ish */
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card: var(--surface-low);
+    --card-foreground: var(--foreground);
+    --popover: var(--surface-high);
+    --popover-foreground: var(--foreground);
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    /* primary: warm orange */
+    --primary: 20 90% 42%;              /* #CC4A0B */
+    --primary-foreground: 0 0% 100%;
+    --primary-container: 22 100% 90%;   /* #FFDBCB */
+    --primary-container-foreground: 20 100% 11%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    --secondary: 20 30% 92%;            /* secondary-container */
+    --secondary-foreground: 18 40% 18%;
+    --muted: var(--surface);
+    --accent: var(--primary-container);
+    --accent-foreground: var(--primary-container-foreground);
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 70% 45%;
+    --destructive-foreground: 0 0% 100%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --border: 20 25% 84%;               /* outline-variant */
+    --input: 20 25% 84%;
+    --ring: var(--primary);
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --radius: 1rem;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    /* legacy sidebar tokens (shadcn sidebar still compiles) */
+    --sidebar-background: var(--surface-low);
+    --sidebar-foreground: var(--foreground);
+    --sidebar-primary: var(--primary);
+    --sidebar-primary-foreground: var(--primary-foreground);
+    --sidebar-accent: var(--surface-high);
+    --sidebar-accent-foreground: var(--foreground);
+    --sidebar-border: var(--border);
+    --sidebar-ring: var(--ring);
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-
-    --radius: 0.5rem;
-
-    --sidebar-background: 0 0% 98%;
-
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    color-scheme: light;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    --background: 15 30% 7%;            /* #170F0B */
+    --surface-low: 16 22% 11%;
+    --surface: 16 18% 14%;
+    --surface-high: 17 15% 18%;
+    --surface-highest: 17 13% 22%;
+    --foreground: 20 45% 91%;           /* #F1DFD8 */
+    --muted-foreground: 20 18% 70%;
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --card: var(--surface-low);
+    --card-foreground: var(--foreground);
+    --popover: var(--surface-high);
+    --popover-foreground: var(--foreground);
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --primary: 24 100% 78%;             /* #FFB690 */
+    --primary-foreground: 20 100% 16%;
+    --primary-container: 20 90% 26%;    /* #7A3300 */
+    --primary-container-foreground: 22 100% 90%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 18 28% 27%;
+    --secondary-foreground: 20 45% 88%;
+    --muted: var(--surface);
+    --accent: var(--primary-container);
+    --accent-foreground: var(--primary-container-foreground);
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --destructive: 0 70% 60%;
+    --destructive-foreground: 0 0% 100%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --border: 17 12% 30%;
+    --input: 17 12% 30%;
+    --ring: var(--primary);
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --sidebar-background: var(--surface-low);
+    --sidebar-foreground: var(--foreground);
+    --sidebar-primary: var(--primary);
+    --sidebar-primary-foreground: var(--primary-foreground);
+    --sidebar-accent: var(--surface-high);
+    --sidebar-accent-foreground: var(--foreground);
+    --sidebar-border: var(--border);
+    --sidebar-ring: var(--ring);
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    color-scheme: dark;
   }
 }
 
@@ -95,8 +108,16 @@
     @apply border-border;
   }
 
+  html {
+    /* System fonts: no download, native Japanese rendering on every OS. */
+    font-family: system-ui, -apple-system, "Segoe UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", Meiryo, Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+  }
+
   body {
     @apply bg-background text-foreground;
+    overscroll-behavior-y: none;
   }
 }
 
