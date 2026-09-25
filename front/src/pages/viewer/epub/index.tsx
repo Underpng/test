@@ -1,23 +1,10 @@
-import { useState, useEffect } from "react";
-import { EPUBViewer } from "@/components/viewer/epub";
-
-function useQuery() {
-    const [query, setQuery] = useState<URLSearchParams | null>(null);
-
-    useEffect(() => {
-        setQuery(new URLSearchParams(window.location.search));
-    }, []);
-
-    return query;
-}
+import { useSearchParams } from "react-router-dom";
+import { EpubViewer } from "@/components/viewer/epub";
 
 export function EPUBViewerPage() {
-    const query = useQuery();
+    const [params] = useSearchParams();
+    const path = params.get("path") ?? "";
+    const position = params.get("position") ?? "";
 
-    if (!query) return <p>Loading...</p>;
-
-    const path = query.get("path") ?? "";
-    const position = query.get("position") ?? ""
-
-    return <EPUBViewer fileUrl={`/book/epub?path=${encodeURIComponent(path)}`} initialPage={position} />;
+    return <EpubViewer key={path} path={path} title={params.get("title") ?? ""} initialCfi={position || undefined} />;
 }

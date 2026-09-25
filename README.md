@@ -86,7 +86,7 @@ npm run typecheck
 npm test             # Playwright スモークテスト（Chromium / WebKit / iPhone エミュレーション）
 ```
 
-Playwright は `http://localhost:50080` に対して動きます。dev サーバーに向ける場合は `BASE_URL=http://localhost:9000`。初回は `npx playwright install chromium webkit`。
+Playwright は `dist\shelf.exe` を生成したテスト用蔵書（`tests/fixtures/make-library.mjs`）で自動起動して走らせるので、先に `build.ps1` を実行しておきます。稼働中のサーバーに対して走らせる場合は `BASE_URL=http://localhost:50080`。初回は `npx playwright install chromium webkit`。
 
 ### API（フロントが使うもの）
 

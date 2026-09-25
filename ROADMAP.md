@@ -32,7 +32,8 @@
      - Safari 対策: viewport の user-scalable=no、2 本指 touchmove と gesturestart の抑止、長押しコールアウト無効
      - キーボード: ←→（綴じ方向に従う）、Space / PageDown で次、PageUp で前、Esc でバー切替
    - **ホーム画面** — 済。`/api/home` で「続きを読む」「次の巻（読み終えた巻の続き）」「新着」を 1 リクエストで返す。スマホ幅で崩れていた横スクロールを修正
-   - Safari で EPUB ビューアが操作不能になる問題: まず react-reader を外して epubjs を直接制御、駄目なら foliate-js に載せ替え（未着手。EPUB を使うか次第）
+   - **EPUB ビューアの作り直し**（`components/viewer/epub.tsx`）— 済。react-reader を外し epubjs を直接制御。iframe の上に透明のジェスチャー層を置き、タップやスワイプが iframe に届かないようにした（Safari で固まる原因を根本から回避）。上流では無視されていた読書位置（CFI）の復元、文字数ベースの進捗（バックグラウンドで生成）、紙面の白黒切替、巻末の次巻カード、本の綴じ方向（page-progression-direction）に従うキー操作
+   - **テスト基盤**: Playwright は `dist\shelf.exe` を生成した小さな蔵書（CBZ 2 巻 + EPUB 2 巻 + 単発 1 冊、`tests/fixtures/make-library.mjs`）で起動して走らせる。実際の蔵書に依存しない。`BASE_URL` を指定すると稼働中のサーバーに対して実行
 4. **デザイン刷新（Material 3 / Chrome 風）** — 第 1 段（本棚まわり）済、ビューアの統一が未
    - 決定: アクセントは暖色（オレンジ）、ダークモードは OS 追従（手動切替もあり）
    - トークン: `index.css` に M3 のトーン付きサーフェス（surface / low / high / highest）とプライマリコンテナを HSL で定義。角丸 16px、ボタンは pill
