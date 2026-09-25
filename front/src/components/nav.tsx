@@ -94,7 +94,10 @@ export function NavRail() {
 // Phone: slim top bar with the app mark and theme toggle.
 export function TopBar() {
     return (
-        <header className="sticky top-0 z-30 flex h-14 items-center justify-between bg-background/85 px-4 backdrop-blur md:hidden">
+        <header
+            className="sticky top-0 z-30 flex h-14 items-center justify-between bg-background/85 px-4 backdrop-blur md:hidden"
+            style={{ paddingTop: "env(safe-area-inset-top)", height: "calc(3.5rem + env(safe-area-inset-top))" }}
+        >
             <div className="flex items-center gap-2 font-semibold">
                 <BookOpenText size={20} className="text-primary" />
                 shelf

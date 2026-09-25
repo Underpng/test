@@ -80,6 +80,9 @@ export function ComicViewer({ kind, path, title, initialPage = 1 }: ComicViewerP
     const [edge, setEdge] = useState<"none" | "end" | "start">("none");
     const [chrome, setChrome] = useState(true);
     const [zoomed, setZoomed] = useState(false);
+    const [loadError, setLoadError] = useState<string | null>(null);
+    const [pageError, setPageError] = useState(false);
+    const [reload, setReload] = useState(0);
 
     const direction = options.direction;
     const spread = resolveSpread(options.spread, landscape);
@@ -97,7 +100,11 @@ export function ComicViewer({ kind, path, title, initialPage = 1 }: ComicViewerP
     const prevView = prevStart !== null ? viewPages(prevStart, spread, total) : null;
 
     const encodedPath = encodeURIComponent(path);
-    const pageUrl = useCallback((n: number) => `/book/${kind}?path=${encodedPath}&page=${n}`, [kind, encodedPath]);
+    // `reload` busts the cache after a failed image load.
+    const pageUrl = useCallback(
+        (n: number) => `/book/${kind}?path=${encodedPath}&page=${n}${reload ? `&r=${reload}` : ""}`,
+        [kind, encodedPath, reload],
+    );
     const displayTitle = title || decodeURIComponent(path.split("/").pop() ?? "").replace(/\.[^.]+$/, "");
 
     // ----- refs for imperative gesture handling (no re-render per move) -----
@@ -158,9 +165,13 @@ export function ComicViewer({ kind, path, title, initialPage = 1 }: ComicViewerP
     // ----- data -----
     useEffect(() => {
         let cancelled = false;
+        setLoadError(null);
         sendAccess(path);
         fetch(`/book/${kind}/pages?path=${encodedPath}`)
-            .then((res) => (res.ok ? res.json() : Promise.reject(new Error(res.statusText))))
+            .then((res) => {
+                if (res.ok) return res.json();
+                throw new Error(res.status === 404 ? "この本が見つかりません。移動または削除された可能性があります。" : `サーバーがエラーを返しました (${res.status})`);
+            })
             .then((data: { pages?: number }) => {
                 if (cancelled) return;
                 const n = Math.max(1, data.pages ?? 1);
@@ -170,14 +181,20 @@ export function ComicViewer({ kind, path, title, initialPage = 1 }: ComicViewerP
                     setSliderValue([1]);
                 }
             })
-            .catch((err) => console.error("Error fetching page count:", err));
+            .catch((err) => {
+                console.error("Error fetching page count:", err);
+                if (!cancelled) setLoadError(err instanceof TypeError ? "サーバーに接続できません。" : err.message);
+            });
         fetchNeighbors(path).then((nb) => {
             if (!cancelled) setNeighbors(nb);
         });
         return () => {
             cancelled = true;
         };
-    }, [kind, path, encodedPath, initialPage]);
+    }, [kind, path, encodedPath, initialPage, reload]);
+
+    // A failed page image is reported once per page shown.
+    useEffect(() => setPageError(false), [page, reload]);
 
     // Save the reading position, coalescing rapid page turns.
     const scheduleProgress = useCallback(
@@ -490,6 +507,7 @@ export function ComicViewer({ kind, path, title, initialPage = 1 }: ComicViewerP
                             src={pageUrl(p)}
                             alt=""
                             draggable={false}
+                            onError={role === "cur" ? () => setPageError(true) : undefined}
                             className="select-none"
                             style={{
                                 maxHeight: "100%",
@@ -578,6 +596,35 @@ export function ComicViewer({ kind, path, title, initialPage = 1 }: ComicViewerP
                     </p>
                 )}
             </div>
+
+            {(loadError || pageError) && (
+                <div
+                    role="alert"
+                    className="absolute inset-0 z-40 flex items-center justify-center bg-black/80 p-6 text-center text-white"
+                    onPointerDown={stop}
+                >
+                    <div className="max-w-sm">
+                        <p className="font-medium">{loadError ? "本を開けません" : "ページを読み込めません"}</p>
+                        <p className="mt-2 text-sm text-neutral-300">{loadError ?? "通信が途切れたか、ファイルが壊れている可能性があります。"}</p>
+                        <div className="mt-5 flex justify-center gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setReload((r) => r + 1)}
+                                className="rounded-full bg-white px-5 py-2 text-sm font-medium text-black"
+                            >
+                                再試行
+                            </button>
+                            <button
+                                type="button"
+                                onClick={toShelf}
+                                className="rounded-full bg-neutral-800 px-5 py-2 text-sm font-medium text-white"
+                            >
+                                本棚へ
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {edge !== "none" && (
                 <EndOfBook

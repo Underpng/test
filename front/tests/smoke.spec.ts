@@ -50,3 +50,17 @@ test("cbz viewer shows a page image", async ({ page }) => {
 		.poll(async () => img.evaluate((el) => (el as HTMLImageElement).naturalWidth), { timeout: 20_000 })
 		.toBeGreaterThan(0);
 });
+
+test("unknown routes show the not-found page", async ({ page }) => {
+	await page.goto("/no/such/page");
+	await expect(page.getByRole("heading", { name: "ページが見つかりません" })).toBeVisible();
+	await page.getByRole("link", { name: "ホームへ" }).click();
+	await expect(page.getByRole("heading", { name: "ホーム" })).toBeVisible();
+});
+
+test("a missing book shows an error with a way back", async ({ page }) => {
+	await page.goto("/viewer/cbz?title=x&path=%2Fdoes-not-exist.cbz&position=1");
+	await expect(page.getByRole("alert")).toContainText("本を開けません");
+	await page.getByRole("alert").getByRole("button", { name: "本棚へ" }).click();
+	await expect(page).toHaveURL(/\/$/);
+});

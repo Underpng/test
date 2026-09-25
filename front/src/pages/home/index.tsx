@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { Link } from "react-router-dom"
 import { ChevronRight } from "lucide-react"
-import { BookCard } from "@/components/bookcard"
+import { BookCard, BookCardSkeleton } from "@/components/bookcard"
+import { ErrorCard, describeError } from "@/components/error-card"
 import { Button } from "@/components/ui/button"
 import { BookEntry } from "@/api/interface"
 import { viewerUrl } from "@/lib/viewer-url"
@@ -27,7 +28,7 @@ function ContinueCard({ book }: { book: BookEntry }) {
 	const pct = Math.round(book.progress * 100)
 	const series = seriesName(book)
 	return (
-		<section className="flex gap-4 rounded-3xl bg-surface-low p-4 md:gap-6 md:p-6">
+		<section className="flex gap-4 rounded-3xl bg-surface-low p-4 animate-in fade-in duration-300 motion-reduce:animate-none md:gap-6 md:p-6">
 			<Link to={viewerUrl(book)} className="w-28 flex-shrink-0 md:w-36">
 				<div className="aspect-[2/3] overflow-hidden rounded-xl bg-surface-high shadow-md">
 					{book.cover && <img src={`/cover${book.cover}`} alt="" className="h-full w-full object-cover" />}
@@ -56,6 +57,10 @@ function ContinueCard({ book }: { book: BookEntry }) {
 	)
 }
 
+function Row({ children }: { children: React.ReactNode }) {
+	return <div className="no-scrollbar -mx-4 flex gap-3 overflow-x-auto px-4 pb-1 md:-mx-8 md:gap-4 md:px-8">{children}</div>
+}
+
 function Shelf({ title, books, hint }: { title: string; books: BookEntry[]; hint?: string }) {
 	if (books.length === 0) return null
 	return (
@@ -64,23 +69,63 @@ function Shelf({ title, books, hint }: { title: string; books: BookEntry[]; hint
 				<h2 className="text-lg font-semibold">{title}</h2>
 				{hint && <p className="text-xs text-muted-foreground">{hint}</p>}
 			</div>
-			<div className="no-scrollbar -mx-4 flex gap-3 overflow-x-auto px-4 pb-1 md:-mx-8 md:gap-4 md:px-8">
-				{books.map((book) => (
-					<BookCard key={book.path} book={book} />
+			<Row>
+				{books.map((book, i) => (
+					<BookCard key={book.path} book={book} index={i} />
 				))}
-			</div>
+			</Row>
 		</section>
+	)
+}
+
+function HomeSkeleton() {
+	return (
+		<div className="space-y-8" aria-busy>
+			<div className="flex gap-4 rounded-3xl bg-surface-low p-4 md:gap-6 md:p-6">
+				<div className="aspect-[2/3] w-28 animate-pulse rounded-xl bg-surface-high md:w-36" />
+				<div className="flex-1 space-y-3 pt-1">
+					<div className="h-3 w-20 animate-pulse rounded bg-surface-high" />
+					<div className="h-5 w-3/4 animate-pulse rounded bg-surface-high" />
+					<div className="h-3 w-1/3 animate-pulse rounded bg-surface-high" />
+				</div>
+			</div>
+			<div>
+				<div className="mb-3 h-5 w-24 animate-pulse rounded bg-surface-high" />
+				<Row>
+					{Array.from({ length: 5 }, (_, i) => (
+						<BookCardSkeleton key={i} />
+					))}
+				</Row>
+			</div>
+		</div>
 	)
 }
 
 export default function HomePage() {
 	const [data, setData] = useState<HomeData | null>(null)
+	const [error, setError] = useState<string | null>(null)
+	const [attempt, setAttempt] = useState(0)
 
 	useEffect(() => {
+		let cancelled = false
+		setError(null)
 		fetch("/api/home")
-			.then((res) => (res.ok ? res.json() : Promise.reject(new Error(res.statusText))))
-			.then((d: HomeData) => setData(d))
-			.catch((e) => console.error("Failed to load home", e))
+			.then((res) => (res.ok ? res.json() : Promise.reject(new Error(`サーバーがエラーを返しました (${res.status})`))))
+			.then((d: HomeData) => {
+				if (!cancelled) setData(d)
+			})
+			.catch((e) => {
+				console.error("Failed to load home", e)
+				if (!cancelled) setError(describeError(e))
+			})
+		return () => {
+			cancelled = true
+		}
+	}, [attempt])
+
+	const retry = useCallback(() => {
+		setData(null)
+		setAttempt((a) => a + 1)
 	}, [])
 
 	const empty = data && data.reading.length === 0 && data.next.length === 0 && data.arrivals.length === 0
@@ -90,6 +135,8 @@ export default function HomePage() {
 	return (
 		<div className="mx-auto max-w-6xl space-y-8 px-4 py-4 md:px-8 md:py-8">
 			<h1 className="text-2xl font-semibold md:text-3xl">ホーム</h1>
+			{error && <ErrorCard detail={error} onRetry={retry} />}
+			{!data && !error && <HomeSkeleton />}
 			{data && (
 				<>
 					{current && <ContinueCard book={current} />}

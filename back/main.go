@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"mime"
 	"net"
 	"net/http"
 	"os"
@@ -171,6 +172,8 @@ func lanAddresses() []string {
 
 func main() {
 	c := loadConfig()
+	// Not in every OS registry; browsers need it for "add to home screen".
+	mime.AddExtensionType(".webmanifest", "application/manifest+json")
 	if abs, err := filepath.Abs(c.dataDir); err == nil {
 		c.dataDir = abs
 	}

@@ -25,7 +25,7 @@ export function EndOfBook({ mode, neighbor, index, total, onContinue, onClose, o
             data-testid="end-of-book"
         >
             <div
-                className="w-full max-w-sm rounded-2xl bg-neutral-900 p-5 text-white shadow-2xl"
+                className="w-full max-w-sm rounded-2xl bg-neutral-900 p-5 text-white shadow-2xl animate-in fade-in zoom-in-95 slide-in-from-bottom-4 duration-200 motion-reduce:animate-none"
                 onClick={(e) => e.stopPropagation()}
             >
                 <p className="text-sm text-neutral-400">

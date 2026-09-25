@@ -10,6 +10,7 @@ import HomePage from "./pages/home";
 import SearchPage from "./pages/search";
 import SeriesPage from "./pages/series";
 import RootPage from "./pages/root";
+import NotFoundPage from "./pages/not-found";
 import { PDFViewerPage } from "./pages/viewer/pdf";
 import { EPUBViewerPage } from "./pages/viewer/epub";
 import { CBRViewerPage } from "./pages/viewer/cbr";
@@ -32,6 +33,7 @@ root.render(
 					<Route path="root/*" element={<RootPage />} />
 					<Route path="series" element={<SeriesPage />} />
 					<Route path="search" element={<SearchPage />} />
+					<Route path="*" element={<NotFoundPage />} />
 				</Route>
 				<Route path="/viewer/pdf" element={<PDFViewerPage />} />
 				<Route path="/viewer/epub" element={<EPUBViewerPage />} />
