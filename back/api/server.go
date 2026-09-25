@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"runtime"
 	"strconv"
 	"strings"
 
@@ -102,7 +103,7 @@ func bookPath(r *http.Request) string {
 }
 
 type paging struct {
-	orderBy string
+	orderBy db.Order
 	limit   int
 	offset  int
 }
@@ -280,11 +281,17 @@ func (s *Server) rescan(w http.ResponseWriter, r *http.Request) {
 func (s *Server) status(w http.ResponseWriter, r *http.Request) {
 	n, _ := s.DB.Count()
 	last := s.Scanner.Last()
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
 	writeJSON(w, map[string]any{
 		"version":  s.Version,
 		"books":    n,
 		"booksDir": s.Lib.BooksDir,
 		"sevenZip": s.SevenZip != "",
+		"memoryMB": map[string]uint64{
+			"goHeapInUse": m.HeapInuse >> 20,
+			"goTotal":     m.Sys >> 20,
+		},
 		"lastScan": map[string]any{
 			"at":       last.At,
 			"added":    last.Added,

@@ -115,8 +115,17 @@ func findTool(explicit string, names ...string) string {
 	return ""
 }
 
+// consoleWriter ignores write errors: a windowless (-H windowsgui) build
+// has no usable stdout, and io.MultiWriter would otherwise stop at it.
+type consoleWriter struct{ w io.Writer }
+
+func (c consoleWriter) Write(p []byte) (int, error) {
+	c.w.Write(p)
+	return len(p), nil
+}
+
 func openLog(c config) (*log.Logger, func()) {
-	writers := []io.Writer{os.Stdout}
+	writers := []io.Writer{consoleWriter{os.Stdout}}
 	closer := func() {}
 	if c.logFile != "-" {
 		p := c.logFile
@@ -179,7 +188,7 @@ func main() {
 	if err != nil {
 		logger.Fatalf("books dir: %v", err)
 	}
-	database, err := db.Open(filepath.Join(c.dataDir, "library.db"))
+	database, err := db.Open(filepath.Join(c.dataDir, "library.json"))
 	if err != nil {
 		logger.Fatalf("open db: %v", err)
 	}

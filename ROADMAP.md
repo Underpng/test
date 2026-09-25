@@ -18,8 +18,10 @@
    - 自然順ソート、表紙生成失敗の再試行（最大 3 回）、定期再スキャン、起動即応答
    - `/api/neighbors`（同じフォルダ内の前後の本）
    - フロントを exe に埋め込み、`build.ps1` で `shelf.exe`（コンソール）と `shelfw.exe`（ウィンドウなし）を生成
-   - ソフトメモリ上限 96 MB とスキャン後の OS へのメモリ返却。実測: 起動後 16 MB、閲覧中 20 MB 前後
-   - `scripts/install-autostart.ps1`（ログオン時起動）、`scripts/setup-firewall.ps1`（受信許可）
+   - SQLite（modernc の Go 移植、初期化だけで約 40 MB）を廃止し、メモリ上のカタログ + `library.json` に置き換え
+   - ソフトメモリ上限 96 MB とスキャン後の OS へのメモリ返却。実測: 起動後 15 MB、閲覧中 20 MB 前後、exe 14.7 MB
+   - `scripts/install.ps1`（常設フォルダへ配置 + 本の移動 + 自動起動）、`install-autostart.ps1`、`setup-firewall.ps1`
+   - 配置先: `D:\ShelfBook`（2026-09-25 設置、タスク `ShelfBookServer` でログオン時起動）
 3. **ビューア**
    - **次巻へシームレスに移動**（Kindle 風）: 巻末で同じフォルダ内の次のファイルを提示し、タップで続けて読める。前巻にも戻れる。API は済、UI が未
    - Safari で EPUB ビューアが操作不能になる問題: まず react-reader を外して epubjs を直接制御、駄目なら foliate-js に載せ替え

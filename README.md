@@ -5,9 +5,17 @@
 # shelf | Book（自宅PC向けフォーク）
 
 漫画・電子書籍（CBZ / CBR / EPUB / PDF）を LAN 内の iPhone などから読むための軽量サーバー。
-Go の単一 exe にフロントエンドを埋め込んであり、Docker も nginx も不要です。メモリ使用量は 20 MB 前後。
+Go の単一 exe にフロントエンドを埋め込んであり、Docker も nginx もデータベースも不要です。メモリ使用量は 15〜20 MB。
 
 ## 使う（Windows）
+
+ビルド済みなら、常設フォルダへの配置・本の移動・自動起動登録を 1 コマンドで行えます。
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\install.ps1 -Target D:\ShelfBook -BooksFrom <今の本のフォルダ> -Autostart
+```
+
+手動で置く場合:
 
 1. `dist\shelf.exe` の隣に `books\` フォルダを作り、本を入れる（サブフォルダ可。作品ごとにフォルダ分けし、巻はゼロ埋めした番号にしておくと並びが安定します）。
 2. `shelf.exe` をダブルクリックで起動。`http://localhost:50080` で本棚が開きます。同じ Wi-Fi の iPhone からは起動ログに出る `http://<PCのIP>:50080` を Safari で開き、共有→ホーム画面に追加。
@@ -113,7 +121,7 @@ docker compose up -d --build
 
 上流 [projects-shelf/Book](https://github.com/projects-shelf/Book) は Go + SQLite のバックエンドと React のフロントで構成され、Docker で動かす前提でした。このフォークでは以下を変更しています。
 
-- gin と cgo（WebP エンコーダ）を外し、標準ライブラリ + modernc sqlite の純 Go にした（Windows exe を簡単に作れる）
+- gin、cgo（WebP エンコーダ）、SQLite を外し、標準ライブラリ + x/image だけの純 Go にした（Windows exe を簡単に作れる）。蔵書カタログはメモリ上に持ち `data\library.json` に保存する（SQLite の Go 移植だけで約 40 MB 使っていたため）
 - CBZ / EPUB を `archive/zip` で直接読む（7z 呼び出しの空白区切りパースで内部パスにスペースがあると読めなかった問題を根治。ページ配信 200 ms → 2 ms）
 - ページと巻を自然順ソート（`v2` < `v10`）
 - 表紙生成の失敗を再試行、本の追加・削除を定期スキャンで自動反映、起動即応答
