@@ -2,6 +2,10 @@ import path from "node:path";
 import { defineConfig } from "@farmfe/core";
 import postcss from "@farmfe/js-plugin-postcss";
 
+// While developing, API calls are forwarded to a running server
+// (by default the docker-compose stack on port 50080).
+const backend = process.env.BACKEND_URL ?? "http://localhost:50080";
+
 export default defineConfig({
 	plugins: [
 		[
@@ -23,13 +27,12 @@ export default defineConfig({
 		},
 	},
 	server: {
+		port: 9000,
 		cors: true,
 		proxy: {
-			"/api/anime": {
-				target: "https://api.jikan.moe/v4",
-				changeOrigin: true,
-				rewrite: (path) => path.replace(/^\/api/, ""),
-			},
+			"/api": { target: backend, changeOrigin: true },
+			"/book": { target: backend, changeOrigin: true },
+			"/cover": { target: backend, changeOrigin: true },
 		},
 	},
 });

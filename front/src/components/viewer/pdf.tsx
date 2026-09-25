@@ -104,17 +104,23 @@ function PDFViewerInner({ documentId, encodedFilePath, initialPage, documentStat
                 pageIndex,
                 options: { scaleFactor: dpr_ratio, imageType: 'image/webp' },
             });
-            task?.wait((blob: Blob) => {
-                const url = URL.createObjectURL(blob);
-                renderingRef.current.delete(pageIndex);
-                setPageCache(p => {
-                    const next = new Map(p);
-                    // Revoke the previous ObjectURL to avoid memory leaks
-                    if (next.has(pageIndex)) URL.revokeObjectURL(next.get(pageIndex)!);
-                    next.set(pageIndex, url);
-                    return next;
-                });
-            });
+            task?.wait(
+                (blob: Blob) => {
+                    const url = URL.createObjectURL(blob);
+                    renderingRef.current.delete(pageIndex);
+                    setPageCache(p => {
+                        const next = new Map(p);
+                        // Revoke the previous ObjectURL to avoid memory leaks
+                        if (next.has(pageIndex)) URL.revokeObjectURL(next.get(pageIndex)!);
+                        next.set(pageIndex, url);
+                        return next;
+                    });
+                },
+                (reason) => {
+                    renderingRef.current.delete(pageIndex);
+                    console.warn(`Failed to render PDF page ${pageIndex + 1}`, reason);
+                },
+            );
             return prev;
         });
     }, [renderPlugin, documentId, numPages]);

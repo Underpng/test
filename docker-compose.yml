@@ -1,35 +1,16 @@
+# Optional: container deployment for Linux hosts. On Windows use dist\shelf.exe.
 services:
-  nginx:
-    image: nginx:alpine
-    container_name: shelf_book_nginx
-    networks:
-      - shelf-book-network
+  shelf:
+    build: .
+    container_name: shelf_book
     ports:
-      - "50080:80"
+      - "50080:50080"
     volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf
-      - ./front/dist:/front
-    depends_on:
-      - go
-    restart: unless-stopped
-
-  go:
-    build:
-      context: ./back
-    container_name: shelf_book_go
-    networks:
-      - shelf-book-network
-    volumes:
-      - ./db:/db
-      - ./cache:/cache
       - ./books:/books:ro
+      - ./data:/data
     environment:
-      - TZ=UTC
+      - TZ=Asia/Tokyo
       - PAGE_SIZE=20
       - COVER_SIZE=300
-      - COVER_QUALITY=70
+      - COVER_QUALITY=75
     restart: unless-stopped
-
-networks:
-  shelf-book-network:
-    driver: bridge

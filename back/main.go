@@ -1,64 +1,257 @@
+// Command shelf is a single-binary comic and ebook server for the home LAN.
 package main
 
 import (
-	"back/api"
-	"back/api/stream"
-	"back/database"
-	"back/internal/scan"
+	"context"
+	"errors"
+	"flag"
+	"fmt"
+	"io"
+	"log"
+	"net"
+	"net/http"
 	"os"
+	"os/exec"
+	"os/signal"
+	"path/filepath"
+	"runtime"
+	"runtime/debug"
 	"strconv"
+	"strings"
+	"syscall"
+	"time"
 
-	"github.com/gin-gonic/gin"
+	"shelf/api"
+	"shelf/internal/cover"
+	"shelf/internal/db"
+	"shelf/internal/library"
+	"shelf/internal/scan"
+	"shelf/web"
 )
 
-func main() {
-	if err := os.MkdirAll("/db/", 0755); err != nil {
-		panic(err)
+var version = "dev"
+
+type config struct {
+	booksDir     string
+	dataDir      string
+	port         int
+	pageSize     int
+	coverSize    int
+	coverQuality int
+	sevenZip     string
+	scanInterval time.Duration
+	logFile      string
+}
+
+func envOr(key, def string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
 	}
+	return def
+}
 
-	gin.SetMode(gin.ReleaseMode)
-	r := gin.Default()
-
-	// db
-
-	bookDB := database.OpenBookDB()
-	defer bookDB.Close()
-
-	keywordDB := database.OpenKeywordDB()
-	defer keywordDB.Close()
-
-	// scan books
-
-	if err := scan.Scan(bookDB, keywordDB); err != nil {
-		panic(err)
+func envInt(key string, def int) int {
+	if v, err := strconv.Atoi(os.Getenv(key)); err == nil {
+		return v
 	}
+	return def
+}
 
-	// api
+func envDuration(key string, def time.Duration) time.Duration {
+	if v, err := time.ParseDuration(os.Getenv(key)); err == nil {
+		return v
+	}
+	return def
+}
 
-	println("📚 Book scanning completed. Starting the server now...")
+// baseDir is where books/ and data/ live by default: next to the
+// executable, so a copied folder just works.
+func baseDir() string {
+	exe, err := os.Executable()
+	if err != nil {
+		return "."
+	}
+	dir := filepath.Dir(exe)
+	if rel, err := filepath.Rel(os.TempDir(), dir); err == nil && !filepath.IsAbs(rel) && rel != ".." && !hasPrefix(rel, "..") {
+		return "." // `go run` builds into a temp dir; use the working directory instead
+	}
+	return dir
+}
 
-	pageSize := 20
-	if v := os.Getenv("PAGE_SIZE"); v != "" {
-		if ps, err := strconv.Atoi(v); err == nil && ps > 0 {
-			pageSize = ps
+func hasPrefix(p, prefix string) bool {
+	return len(p) >= len(prefix) && p[:len(prefix)] == prefix
+}
+
+func loadConfig() config {
+	base := baseDir()
+	var c config
+	flag.StringVar(&c.booksDir, "books", envOr("BOOKS_DIR", filepath.Join(base, "books")), "directory containing the books")
+	flag.StringVar(&c.dataDir, "data", envOr("DATA_DIR", filepath.Join(base, "data")), "directory for the database and covers")
+	flag.IntVar(&c.port, "port", envInt("PORT", 50080), "port to listen on")
+	flag.IntVar(&c.pageSize, "page-size", envInt("PAGE_SIZE", 20), "books per page in listings")
+	flag.IntVar(&c.coverSize, "cover-size", envInt("COVER_SIZE", 300), "cover thumbnail short side in pixels")
+	flag.IntVar(&c.coverQuality, "cover-quality", envInt("COVER_QUALITY", 75), "cover JPEG quality")
+	flag.StringVar(&c.sevenZip, "7z", envOr("SEVENZIP", ""), "path to the 7-Zip executable (for CBR); auto-detected when empty")
+	flag.DurationVar(&c.scanInterval, "scan-interval", envDuration("SCAN_INTERVAL", 10*time.Minute), "how often to look for new books (0 disables)")
+	flag.StringVar(&c.logFile, "log", envOr("LOG_FILE", ""), "log file path ('-' for console only); default data/server.log")
+	showVersion := flag.Bool("version", false, "print the version and exit")
+	flag.Parse()
+	if *showVersion {
+		fmt.Println("shelf", version)
+		os.Exit(0)
+	}
+	return c
+}
+
+func findTool(explicit string, names ...string) string {
+	if explicit != "" {
+		return explicit
+	}
+	for _, n := range names {
+		if p, err := exec.LookPath(n); err == nil {
+			return p
 		}
 	}
+	return ""
+}
 
-	r.GET("/api/all", api.AllHandler(bookDB, pageSize))
-	r.GET("/api/root/*path", api.RootHandler(bookDB, pageSize))
-	r.GET("/api/search", api.SearchHandler(bookDB, keywordDB, pageSize))
-	r.GET("/api/progress", api.ProgressHandler(bookDB))
-	r.GET("/api/access", api.AccessHandler(bookDB))
+func openLog(c config) (*log.Logger, func()) {
+	writers := []io.Writer{os.Stdout}
+	closer := func() {}
+	if c.logFile != "-" {
+		p := c.logFile
+		if p == "" {
+			p = filepath.Join(c.dataDir, "server.log")
+		}
+		if info, err := os.Stat(p); err == nil && info.Size() > 5<<20 {
+			os.Rename(p, p+".old")
+		}
+		if f, err := os.OpenFile(p, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o644); err == nil {
+			writers = append(writers, f)
+			closer = func() { f.Close() }
+		}
+	}
+	return log.New(io.MultiWriter(writers...), "", log.LstdFlags), closer
+}
 
-	r.GET("/book/epub", stream.EPUBStreamHandler())
+func lanAddresses() []string {
+	var out []string
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		return nil
+	}
+	for _, ifc := range ifaces {
+		if ifc.Flags&net.FlagUp == 0 || ifc.Flags&net.FlagLoopback != 0 {
+			continue
+		}
+		// Hyper-V / WSL / VPN adapters are not reachable from the phone.
+		lower := strings.ToLower(ifc.Name)
+		if strings.Contains(lower, "vethernet") || strings.Contains(lower, "virtual") ||
+			strings.Contains(lower, "tailscale") || strings.Contains(lower, "nordlynx") {
+			continue
+		}
+		addrs, _ := ifc.Addrs()
+		for _, a := range addrs {
+			if ipn, ok := a.(*net.IPNet); ok && ipn.IP.To4() != nil && ipn.IP.IsPrivate() {
+				out = append(out, ipn.IP.String())
+			}
+		}
+	}
+	return out
+}
 
-	r.GET("/book/pdf", stream.PDFStreamHandler())
-	r.GET("/book/cbr", stream.CBRStreamHandler())
-	r.GET("/book/cbr/pages", stream.CBRPagesHandler())
-	r.GET("/book/cbz", stream.CBZStreamHandler())
-	r.GET("/book/cbz/pages", stream.CBZPagesHandler())
+func main() {
+	c := loadConfig()
+	if abs, err := filepath.Abs(c.dataDir); err == nil {
+		c.dataDir = abs
+	}
+	// Stay small: a soft heap cap makes the GC work harder when cover
+	// generation inflates the heap, instead of holding on to the headroom.
+	debug.SetMemoryLimit(96 << 20)
+	if err := os.MkdirAll(c.dataDir, 0o755); err != nil {
+		fmt.Fprintln(os.Stderr, "cannot create data dir:", err)
+		os.Exit(1)
+	}
+	logger, closeLog := openLog(c)
+	defer closeLog()
 
-	r.GET("/cover/*path", api.CoverHandler())
+	lib, err := library.New(c.booksDir)
+	if err != nil {
+		logger.Fatalf("books dir: %v", err)
+	}
+	database, err := db.Open(filepath.Join(c.dataDir, "library.db"))
+	if err != nil {
+		logger.Fatalf("open db: %v", err)
+	}
+	defer database.Close()
 
-	r.Run(":8080")
+	sevenZipNames := []string{"7z", "7zz", "7za"}
+	if runtime.GOOS == "windows" {
+		sevenZipNames = append(sevenZipNames,
+			filepath.Join(os.Getenv("ProgramFiles"), "7-Zip", "7z.exe"),
+			filepath.Join(os.Getenv("ProgramFiles(x86)"), "7-Zip", "7z.exe"))
+	}
+	sevenZip := findTool(c.sevenZip, sevenZipNames...)
+	pdfToPpm := findTool("", "pdftoppm")
+	pdfInfo := findTool("", "pdfinfo")
+
+	coverDir := filepath.Join(c.dataDir, "covers")
+	scanner := &scan.Scanner{
+		Lib:      lib,
+		DB:       database,
+		CoverDir: coverDir,
+		Cover:    cover.Options{Size: c.coverSize, Quality: c.coverQuality, SevenZip: sevenZip, PdfToPpm: pdfToPpm},
+		PdfInfo:  pdfInfo,
+		Log:      logger,
+	}
+	srv := &api.Server{
+		Lib:      lib,
+		DB:       database,
+		Scanner:  scanner,
+		CoverDir: coverDir,
+		PageSize: c.pageSize,
+		SevenZip: sevenZip,
+		Static:   web.Dist(),
+		Version:  version,
+		Log:      logger,
+	}
+
+	logger.Printf("shelf %s  books=%s  data=%s  7z=%q  pdftoppm=%q", version, lib.BooksDir, c.dataDir, sevenZip, pdfToPpm)
+
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	go func() {
+		res, err := scanner.Run()
+		if err != nil {
+			logger.Printf("initial scan failed: %v", err)
+			return
+		}
+		n, _ := database.Count()
+		logger.Printf("scan done: %d books (+%d ~%d -%d) in %s", n, res.Added, res.Updated, res.Deleted, res.Duration.Round(time.Millisecond))
+		debug.FreeOSMemory()
+		scanner.Loop(ctx, c.scanInterval)
+	}()
+
+	httpServer := &http.Server{
+		Addr:              fmt.Sprintf(":%d", c.port),
+		Handler:           srv.Handler(),
+		ReadHeaderTimeout: 10 * time.Second,
+		IdleTimeout:       120 * time.Second,
+	}
+	go func() {
+		logger.Printf("listening on http://localhost:%d", c.port)
+		for _, ip := range lanAddresses() {
+			logger.Printf("  LAN: http://%s:%d", ip, c.port)
+		}
+		if err := httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			logger.Fatalf("server: %v", err)
+		}
+	}()
+
+	<-ctx.Done()
+	logger.Println("shutting down")
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	httpServer.Shutdown(shutdownCtx)
 }

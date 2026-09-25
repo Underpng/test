@@ -1,14 +1,19 @@
 setup:
-	rm -rf ./node_modules
-	bun install
+	npm ci
 
 dev:
-	bun farm dev
+	npm run dev
 
-build: setup license
-	bun farm build
+build:
+	npm run build
+
+typecheck:
+	npm run typecheck
+
+test:
+	npm test
 
 license:
-	bun x license-checker-rseidelsohn --json \
+	npx license-checker-rseidelsohn --json \
 		| jq 'to_entries | map({key: .key, value: (.value | del(.path, .licenseFile))}) | from_entries' \
 		> LICENSE.json

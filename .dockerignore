@@ -1,0 +1,13 @@
+.git
+.claude
+books
+db
+cache
+data
+dist
+assets
+front/node_modules
+front/dist
+front/test-results
+front/playwright-report
+back/web/dist

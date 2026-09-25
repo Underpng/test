@@ -2,6 +2,12 @@
 books/
 db/
 cache/
+data/
+dist/
 node_modules/
 .devcontainer/
-.dockerignore
+front/dist/
+front/test-results/
+front/playwright-report/
+back/web/dist/*
+!back/web/dist/.gitkeep
