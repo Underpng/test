@@ -11,6 +11,7 @@ import { sendProgress } from "@/api/progress";
 import { fetchNeighbors, Neighbors } from "@/api/neighbors";
 import { BookEntry } from "@/api/interface";
 import { continuePosition, viewerUrl } from "@/lib/viewer-url";
+import { illustrations } from "@/lib/illustrations";
 
 type EpubViewerProps = {
     path: string;      // API path, e.g. "/Novels/Book 1.epub"
@@ -273,7 +274,8 @@ export function EpubViewer({ path, title, initialCfi }: EpubViewerProps) {
             )}
             {error && (
                 <div role="alert" className="absolute inset-0 z-40 flex items-center justify-center bg-black/80 p-6 text-center text-white" onPointerDown={stop}>
-                    <div className="max-w-sm">
+                    <div className="flex max-w-sm flex-col items-center">
+                        <img src={illustrations.sleeping} alt="" className="mb-4 w-32 rounded-3xl" />
                         <p className="font-medium">本を開けません</p>
                         <p className="mt-2 text-sm text-neutral-300">{error}</p>
                         <button type="button" onClick={toShelf} className="mt-5 rounded-full bg-white px-5 py-2 text-sm font-medium text-black">

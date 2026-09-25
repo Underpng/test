@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { NavLink } from "react-router-dom";
-import { BookOpenText, Home, Layers, LibraryBig, Monitor, Moon, Search, Sun } from "lucide-react";
+import { Home, Layers, LibraryBig, Monitor, Moon, Search, Sun } from "lucide-react";
 import { getThemeSetting, setThemeSetting, type ThemeSetting } from "@/lib/theme";
 
 const items = [
@@ -80,9 +80,7 @@ export function NavRail() {
             aria-label="メインナビゲーション"
             className="fixed inset-y-0 left-0 z-40 hidden w-20 flex-col items-center gap-1 bg-surface-low pb-4 pt-5 md:flex"
         >
-            <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-primary-container text-primary-container-foreground">
-                <BookOpenText size={22} />
-            </div>
+            <img src="/favicon.png" alt="shelf" className="mb-4 h-11 w-11 rounded-2xl shadow-sm" />
             {items.map((it) => (
                 <Item key={it.to} {...it} vertical={true} />
             ))}
@@ -99,7 +97,7 @@ export function TopBar() {
             style={{ paddingTop: "env(safe-area-inset-top)", height: "calc(3.5rem + env(safe-area-inset-top))" }}
         >
             <div className="flex items-center gap-2 font-semibold">
-                <BookOpenText size={20} className="text-primary" />
+                <img src="/favicon.png" alt="" className="h-7 w-7 rounded-lg" />
                 shelf
             </div>
             <ThemeToggle />

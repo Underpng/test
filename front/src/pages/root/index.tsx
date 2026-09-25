@@ -6,6 +6,8 @@ import { InfiniteBookList, type SeriesInfo } from "@/components/infinite_book_li
 import { SortControls } from "@/components/sort-controls";
 import { Button } from "@/components/ui/button";
 import { viewerUrl } from "@/lib/viewer-url";
+import { Illustration } from "@/components/illustration";
+import { illustrations } from "@/lib/illustrations";
 
 // Summary strip shown above a series folder: progress and where to resume.
 function SeriesHeader({ info }: { info: SeriesInfo }) {
@@ -32,7 +34,12 @@ function SeriesHeader({ info }: { info: SeriesInfo }) {
 					</Link>
 				</Button>
 			)}
-			{allRead && <p className="text-sm text-primary">すべて読了</p>}
+			{allRead && (
+				<div className="flex items-center gap-3">
+					<Illustration src={illustrations.cheer} size="sm" className="rounded-2xl" />
+					<p className="text-sm font-medium text-primary">全巻読了！</p>
+				</div>
+			)}
 		</div>
 	);
 }

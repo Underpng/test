@@ -6,6 +6,8 @@ import { ErrorCard, describeError } from "@/components/error-card"
 import { Button } from "@/components/ui/button"
 import { BookEntry } from "@/api/interface"
 import { viewerUrl } from "@/lib/viewer-url"
+import { Illustration } from "@/components/illustration"
+import { illustrations } from "@/lib/illustrations"
 
 type HomeData = {
 	reading: BookEntry[]
@@ -146,8 +148,9 @@ export default function HomePage() {
 				</>
 			)}
 			{empty && (
-				<div className="rounded-3xl bg-surface-low p-8 text-center text-muted-foreground">
-					<p>まだ本がありません。</p>
+				<div className="flex flex-col items-center rounded-3xl bg-surface-low p-8 text-center text-muted-foreground">
+					<Illustration src={illustrations.empty} className="mb-5" />
+					<p className="font-medium text-foreground">まだ本がありません。</p>
 					<p className="mt-1 text-sm">books フォルダに CBZ / CBR / EPUB / PDF を入れると、数分以内にここに並びます。</p>
 				</div>
 			)}

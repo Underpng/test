@@ -1,5 +1,7 @@
-import { RefreshCw, WifiOff } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Illustration } from "@/components/illustration";
+import { illustrations } from "@/lib/illustrations";
 
 type Props = {
     message?: string;
@@ -12,9 +14,9 @@ type Props = {
 export function ErrorCard({ message = "読み込みに失敗しました", detail, onRetry, className = "" }: Props) {
     return (
         <div role="alert" className={`flex flex-col items-center gap-3 rounded-3xl bg-surface-low px-6 py-8 text-center ${className}`}>
-            <WifiOff className="text-muted-foreground" size={28} />
-            <p className="font-medium">{message}</p>
-            {detail && <p className="text-sm text-muted-foreground">{detail}</p>}
+            <Illustration src={illustrations.sleeping} size="md" />
+            <p className="mt-1 font-medium">{message}</p>
+            {detail && <p className="max-w-md text-sm text-muted-foreground">{detail}</p>}
             {onRetry && (
                 <Button variant="secondary" onClick={onRetry} className="mt-1">
                     <RefreshCw size={16} />

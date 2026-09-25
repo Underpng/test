@@ -166,7 +166,9 @@ func (s *Server) cover(w http.ResponseWriter, r *http.Request) {
 	http.ServeContent(w, r, info.Name(), info.ModTime(), f)
 }
 
-var hashedAsset = regexp.MustCompile(`\.[0-9a-f]{8}\.(js|css|map)$`)
+// Build outputs carry a content hash (Farm: "name.<8hex>.js" for code,
+// "name.<8hex>-<6hex>.jpg" for imported assets), so they never change.
+var hashedAsset = regexp.MustCompile(`\.[0-9a-f]{8}(-[0-9a-f]{6})?\.(js|css|map|jpg|png|webp|svg|wasm)$`)
 
 // static serves the embedded frontend, falling back to index.html so the
 // client-side router owns every unknown path.

@@ -66,3 +66,21 @@ test("first page offers the previous volume", async ({ page }) => {
 	await card.getByRole("button", { name: "閉じる" }).click();
 	await expect(card).toHaveCount(0);
 });
+
+test("finishing the last volume celebrates the series", async ({ page }) => {
+	const series = await findSeries(page);
+	test.skip(series === null, "needs a folder with two CBZ files");
+	const [, last] = series!;
+	const n = await page.request.get(`/api/neighbors?path=${encodeURIComponent(last.path)}`);
+	test.skip(((await n.json()) as { next: Book | null }).next !== null, "second volume is not the last one");
+
+	const pagesRes = await page.request.get(`/book/cbz/pages?path=${encodeURIComponent(last.path)}`);
+	const { pages } = (await pagesRes.json()) as { pages: number };
+	await page.goto(`/viewer/cbz?title=x&path=${encodeURIComponent(last.path)}&position=${pages}`);
+	await expect(page.locator("img").first()).toBeVisible({ timeout: 20_000 });
+
+	await page.keyboard.press("Space");
+	const card = page.getByTestId("end-of-book");
+	await expect(card.getByText("シリーズ読了！")).toBeVisible();
+	await expect(card.locator("img")).toBeVisible();
+});

@@ -5,6 +5,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import "./index.css";
 import Layout from "./layout";
 import { initTheme } from "./lib/theme";
+import { preloadIllustrations } from "./lib/illustrations";
 
 import HomePage from "./pages/home";
 import SearchPage from "./pages/search";
@@ -17,6 +18,7 @@ import { CBRViewerPage } from "./pages/viewer/cbr";
 import { CBZViewerPage } from "./pages/viewer/cbz";
 
 initTheme();
+preloadIllustrations();
 
 const container = document.querySelector("#root");
 if (!container) {

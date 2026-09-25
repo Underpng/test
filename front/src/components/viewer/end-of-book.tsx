@@ -1,5 +1,6 @@
 import { BookEntry } from "@/api/interface";
 import { Button } from "@/components/ui/button";
+import { illustrations } from "@/lib/illustrations";
 
 type EndOfBookProps = {
     mode: "end" | "start";
@@ -55,10 +56,14 @@ export function EndOfBook({ mode, neighbor, index, total, onContinue, onClose, o
                             <p className="mt-2 text-sm text-sky-300">{isEnd ? "続けて読む →" : "← 前の巻を読む"}</p>
                         </div>
                     </button>
+                ) : isEnd ? (
+                    <div className="mt-4 flex flex-col items-center gap-3 rounded-xl bg-neutral-800 p-4 text-center">
+                        <img src={illustrations.cheer} alt="" className="w-40 rounded-2xl" />
+                        <p className="font-medium">シリーズ読了！</p>
+                        <p className="text-sm text-neutral-400">このフォルダの最後の巻でした。</p>
+                    </div>
                 ) : (
-                    <p className="mt-4 rounded-xl bg-neutral-800 p-4 text-sm">
-                        {isEnd ? "このフォルダの最後の巻です。" : "このフォルダの最初の巻です。"}
-                    </p>
+                    <p className="mt-4 rounded-xl bg-neutral-800 p-4 text-sm">このフォルダの最初の巻です。</p>
                 )}
 
                 <div className="mt-4 flex gap-2">

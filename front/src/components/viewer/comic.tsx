@@ -11,6 +11,7 @@ import { fetchNeighbors, Neighbors } from "@/api/neighbors";
 import { BookEntry } from "@/api/interface";
 import { useWindowSize } from "@/hooks/windowSize";
 import { continuePosition, viewerUrl } from "@/lib/viewer-url";
+import { illustrations } from "@/lib/illustrations";
 
 export type ComicKind = "cbz" | "cbr";
 
@@ -603,7 +604,8 @@ export function ComicViewer({ kind, path, title, initialPage = 1 }: ComicViewerP
                     className="absolute inset-0 z-40 flex items-center justify-center bg-black/80 p-6 text-center text-white"
                     onPointerDown={stop}
                 >
-                    <div className="max-w-sm">
+                    <div className="flex max-w-sm flex-col items-center">
+                        <img src={illustrations.sleeping} alt="" className="mb-4 w-32 rounded-3xl" />
                         <p className="font-medium">{loadError ? "本を開けません" : "ページを読み込めません"}</p>
                         <p className="mt-2 text-sm text-neutral-300">{loadError ?? "通信が途切れたか、ファイルが壊れている可能性があります。"}</p>
                         <div className="mt-5 flex justify-center gap-2">
