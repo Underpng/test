@@ -59,8 +59,8 @@ export function EndOfBook({ mode, neighbor, index, total, onContinue, onClose, o
                 ) : isEnd ? (
                     <div className="mt-4 flex flex-col items-center gap-3 rounded-xl bg-neutral-800 p-4 text-center">
                         <img src={illustrations.cheer} alt="" className="w-40 rounded-2xl" />
-                        <p className="font-medium">シリーズ読了！</p>
-                        <p className="text-sm text-neutral-400">このフォルダの最後の巻でした。</p>
+                        <p className="font-medium">シリーズ完読！</p>
+                        <p className="text-sm text-neutral-400">お疲れ様でした！楽しかったですか？</p>
                     </div>
                 ) : (
                     <p className="mt-4 rounded-xl bg-neutral-800 p-4 text-sm">このフォルダの最初の巻です。</p>

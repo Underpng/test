@@ -37,7 +37,7 @@ function SeriesHeader({ info }: { info: SeriesInfo }) {
 			{allRead && (
 				<div className="flex items-center gap-3">
 					<Illustration src={illustrations.cheer} size="sm" className="rounded-2xl" />
-					<p className="text-sm font-medium text-primary">全巻読了！</p>
+					<p className="text-sm font-medium text-primary">シリーズ完読！</p>
 				</div>
 			)}
 		</div>

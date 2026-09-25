@@ -81,6 +81,6 @@ test("finishing the last volume celebrates the series", async ({ page }) => {
 
 	await page.keyboard.press("Space");
 	const card = page.getByTestId("end-of-book");
-	await expect(card.getByText("シリーズ読了！")).toBeVisible();
+	await expect(card.getByText("シリーズ完読！")).toBeVisible();
 	await expect(card.locator("img")).toBeVisible();
 });
