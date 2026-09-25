@@ -17,6 +17,9 @@ export default defineConfig({
 		postcss(),
 	],
 	compilation: {
+		// Tailwind's generated CSS depends on every source file, which the
+		// persistent cache does not track: stale CSS would drop new classes.
+		persistentCache: false,
 		resolve: {
 			alias: {
 				"@": path.resolve(__dirname, "./src"),
