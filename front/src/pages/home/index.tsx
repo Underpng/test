@@ -1,59 +1,55 @@
-"use client"
-
 import { useEffect, useState } from "react"
 import { BookCard } from "@/components/bookcard"
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
+import { BookEntry } from "@/api/interface"
+
+type HomeData = {
+	reading: BookEntry[]
+	next: BookEntry[]
+	arrivals: BookEntry[]
+}
+
+function Shelf({ title, books, hint }: { title: string; books: BookEntry[]; hint?: string }) {
+	if (books.length === 0) return null
+	return (
+		<section className="space-y-2">
+			<h2 className="text-xl font-medium">{title}</h2>
+			{hint && <p className="text-sm text-muted-foreground">{hint}</p>}
+			<ScrollArea className="w-full">
+				<div className="inline-flex gap-4">
+					{books.map((book) => (
+						<BookCard key={book.path} book={book} />
+					))}
+				</div>
+				<ScrollBar orientation="horizontal" />
+			</ScrollArea>
+		</section>
+	)
+}
 
 export default function HomePage() {
-	const [readingBooks, setReadingBooks] = useState([])
-	const [recentlyAddedBooks, setRecentlyAddedBooks] = useState([])
+	const [data, setData] = useState<HomeData | null>(null)
 
 	useEffect(() => {
-		async function fetchBooks() {
-			try {
-				const res1 = await fetch(`/api/all?sort=last_opened&order=desc&page=1`)
-				if (!res1.ok) throw new Error("Failed to fetch books")
-				const data1 = await res1.json()
-				setReadingBooks(data1.books)
-
-				const res2 = await fetch(`/api/all?sort=added_time&order=desc&page=1`)
-				if (!res2.ok) throw new Error("Failed to fetch books")
-				const data2 = await res2.json()
-				setRecentlyAddedBooks(data2.books)
-			} catch (e) {
-			} finally {
-			}
-		}
-		fetchBooks()
+		fetch("/api/home")
+			.then((res) => (res.ok ? res.json() : Promise.reject(new Error(res.statusText))))
+			.then((d: HomeData) => setData(d))
+			.catch((e) => console.error("Failed to load home", e))
 	}, [])
 
+	const empty = data && data.reading.length === 0 && data.next.length === 0 && data.arrivals.length === 0
+
 	return (
-		<div className="p-6 space-y-6">
-			<h1 className="text-2xl font-semibold">Home Page</h1>
-
-			<section className="space-y-2">
-				<h2 className="text-xl font-medium">Reading</h2>
-				<ScrollArea className="w-[calc(100vw-19rem)] max-w-full">
-					<div className="inline-flex gap-4 ">
-						{readingBooks.map((book, index) => (
-							<BookCard key={index} book={book} />
-						))}
-					</div>
-					<ScrollBar orientation="horizontal" />
-				</ScrollArea>
-			</section>
-
-			<section className="space-y-2">
-				<h2 className="text-xl font-medium">Arrivals</h2>
-				<ScrollArea className="w-[calc(100vw-19rem)] max-w-full">
-					<div className="inline-flex gap-4 ">
-						{recentlyAddedBooks.map((book, index) => (
-							<BookCard key={index} book={book} />
-						))}
-					</div>
-					<ScrollBar orientation="horizontal" />
-				</ScrollArea>
-			</section>
+		<div className="min-w-0 w-full flex-1 overflow-x-hidden p-6 space-y-6">
+			<h1 className="text-2xl font-semibold">ホーム</h1>
+			{data && (
+				<>
+					<Shelf title="続きを読む" books={data.reading} />
+					<Shelf title="次の巻" books={data.next} hint="読み終えた巻の続きです" />
+					<Shelf title="新着" books={data.arrivals} />
+				</>
+			)}
+			{empty && <p className="text-muted-foreground">books フォルダに本を入れると、ここに表示されます。</p>}
 		</div>
 	)
 }

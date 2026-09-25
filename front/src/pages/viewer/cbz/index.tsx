@@ -8,5 +8,5 @@ export function CBZViewerPage() {
     const position = isNaN(parsed) || parsed < 1 ? 1 : parsed;
 
     // Keyed by path so moving to the next volume remounts the viewer.
-    return <ComicViewer key={path} kind="cbz" path={path} initialPage={position} />;
+    return <ComicViewer key={path} kind="cbz" path={path} title={params.get("title") ?? ""} initialPage={position} />;
 }

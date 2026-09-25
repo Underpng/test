@@ -7,7 +7,7 @@ import { DocumentState } from '@embedpdf/core';
 import { ViewportPluginPackage } from '@embedpdf/plugin-viewport/react';
 import { RenderLayer, RenderPluginPackage, useRenderCapability } from '@embedpdf/plugin-render/react';
 import { ViewerLayout } from './layout';
-import { ViewerOptions } from './sheet';
+import { resolveSpread, type ViewerOptions } from './sheet';
 import { Slider } from "@/components/ui/slider";
 import { sendProgress } from '@/api/progress';
 import { sendAccess } from '@/api/access';
@@ -51,7 +51,7 @@ function PDFViewerInner({ documentId, encodedFilePath, initialPage, documentStat
             try {
                 const parsed = JSON.parse(saved) as ViewerOptions;
                 setDirection(parsed.direction);
-                setSpread(parsed.spread);
+                setSpread(resolveSpread(parsed.spread, window.innerWidth > window.innerHeight));
             } catch (e) {
                 console.warn("Failed to parse viewerOptions from localStorage");
             }
@@ -243,7 +243,7 @@ function PDFViewerInner({ documentId, encodedFilePath, initialPage, documentStat
         <ViewerLayout
             onOptionChanged={(opt) => {
                 setDirection(opt.direction);
-                setSpread(opt.spread);
+                setSpread(resolveSpread(opt.spread, window.innerWidth > window.innerHeight));
             }}
             onLeft={() => {
                 if (direction === "ltr") {

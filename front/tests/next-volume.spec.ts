@@ -35,7 +35,7 @@ test("last page offers the next volume and opens it", async ({ page }) => {
 	await expect(img).toBeVisible({ timeout: 20_000 });
 
 	// Stepping past the final page shows the end-of-book card.
-	await page.keyboard.press("ArrowRight");
+	await page.keyboard.press("Space");
 	const card = page.getByTestId("end-of-book");
 	await expect(card).toBeVisible();
 	await expect(card.getByText("次の巻", { exact: true })).toBeVisible();
@@ -56,7 +56,7 @@ test("first page offers the previous volume", async ({ page }) => {
 	await page.goto(`/viewer/cbz?title=${encodeURIComponent(second.title)}&path=${encodeURIComponent(second.path)}&position=1`);
 	await expect(page.locator("img").first()).toBeVisible({ timeout: 20_000 });
 
-	await page.keyboard.press("ArrowLeft");
+	await page.keyboard.press("PageUp");
 	const card = page.getByTestId("end-of-book");
 	await expect(card).toBeVisible();
 	await expect(card.getByText("前の巻", { exact: true })).toBeVisible();

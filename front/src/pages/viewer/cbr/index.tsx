@@ -7,5 +7,5 @@ export function CBRViewerPage() {
     const parsed = parseInt(params.get("position") ?? "", 10);
     const position = isNaN(parsed) || parsed < 1 ? 1 : parsed;
 
-    return <ComicViewer key={path} kind="cbr" path={path} initialPage={position} />;
+    return <ComicViewer key={path} kind="cbr" path={path} title={params.get("title") ?? ""} initialPage={position} />;
 }

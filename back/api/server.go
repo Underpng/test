@@ -52,6 +52,7 @@ func entryOf(b db.Book) Entry {
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
 
+	mux.HandleFunc("GET /api/home", s.home)
 	mux.HandleFunc("GET /api/all", s.all)
 	mux.HandleFunc("GET /api/root", s.root)
 	mux.HandleFunc("GET /api/root/{path...}", s.root)

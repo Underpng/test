@@ -25,7 +25,7 @@ async function findFirstCbz(page: Page): Promise<Book | null> {
 
 test("home page renders", async ({ page, isMobile }) => {
 	await page.goto("/");
-	await expect(page.getByText("Home Page")).toBeVisible();
+	await expect(page.getByRole("heading", { name: "ホーム" })).toBeVisible();
 	if (isMobile) {
 		// The sidebar is collapsed on phones; only its trigger button is shown.
 		await expect(page.getByRole("button", { name: /sidebar/i })).toBeVisible();

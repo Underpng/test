@@ -19,6 +19,9 @@ export function EndOfBook({ mode, neighbor, index, total, onContinue, onClose, o
         <div
             className="absolute inset-0 z-40 flex items-center justify-center bg-black/70 p-4"
             onClick={onClose}
+            // Keep the viewer's swipe / tap handling (and its pointer capture)
+            // away from the card so its buttons receive their clicks.
+            onPointerDown={(e) => e.stopPropagation()}
             data-testid="end-of-book"
         >
             <div
