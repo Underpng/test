@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { Folder } from "lucide-react"
 import { Link } from "react-router-dom";
+import { viewerUrl } from "@/lib/viewer-url";
 
 interface BookCardProps {
     book: BookEntry
@@ -10,7 +11,7 @@ interface BookCardProps {
 }
 
 export function BookCard({ book, index }: BookCardProps) {
-    const path = getPath(book)
+    const path = viewerUrl(book)
     return (
         <Link to={path}>
             <Card key={index} className="w-[190px] h-[300px] flex-shrink-0">
@@ -42,24 +43,3 @@ export function BookCard({ book, index }: BookCardProps) {
     )
 }
 
-function getPath(book: BookEntry): string {
-    const encodedPath = encodeURIComponent(book.path);
-    const encodedTitle = encodeURIComponent(book.title ?? "");
-    const encodedCurrentPosition = encodeURIComponent(book.currentPosition ?? "");
-
-    switch (book.type) {
-        case "PDF":
-            return `/viewer/pdf?title=${encodedTitle}&path=${encodedPath}&position=${encodedCurrentPosition}`;
-        case "EPUB":
-            return `/viewer/epub?title=${encodedTitle}&path=${encodedPath}&position=${encodedCurrentPosition}`;
-        case "CBZ":
-            return `/viewer/cbz?title=${encodedTitle}&path=${encodedPath}&position=${encodedCurrentPosition}`;
-        case "CBR":
-            return `/viewer/cbr?title=${encodedTitle}&path=${encodedPath}&position=${encodedCurrentPosition}`;
-        case "Folder":
-            return `/root${book.path}`;
-        default:
-            console.warn("Unknown book type:", book.type);
-            return "/";
-    }
-}

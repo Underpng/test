@@ -1,5 +1,6 @@
 import { ReactNode, useRef, useEffect } from "react";
-import { Settings2 } from "lucide-react";
+import { ArrowLeft, Settings2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import {
     Sheet,
     SheetTrigger,
@@ -11,6 +12,7 @@ type ViewerLayoutProps = {
     onOptionChanged?: (options: ViewerOptions) => void;
     onLeft?: () => void;
     onRight?: () => void;
+    onBack?: () => void;
 };
 
 export function ViewerLayout({
@@ -18,7 +20,10 @@ export function ViewerLayout({
     onOptionChanged,
     onLeft,
     onRight,
+    onBack,
 }: ViewerLayoutProps) {
+    const navigate = useNavigate();
+    const goBack = onBack ?? (() => navigate(-1));
     const touchStartX = useRef<number | null>(null);
     const touchEndX = useRef<number | null>(null);
 
@@ -59,6 +64,14 @@ export function ViewerLayout({
 
     return (
         <div className="w-full h-screen relative">
+            <button
+                type="button"
+                aria-label="本棚へ戻る"
+                onClick={goBack}
+                className="absolute top-4 left-4 z-50 opacity-50 hover:opacity-100"
+            >
+                <ArrowLeft />
+            </button>
             <Sheet>
                 <SheetTrigger asChild>
                     <Settings2 className="absolute top-4 right-4 opacity-50 z-50" />

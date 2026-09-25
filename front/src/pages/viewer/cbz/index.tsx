@@ -1,24 +1,12 @@
-import { useState, useEffect } from "react";
-import { CBZViewer } from "@/components/viewer/cbz";
-
-function useQuery() {
-    const [query, setQuery] = useState<URLSearchParams | null>(null);
-
-    useEffect(() => {
-        setQuery(new URLSearchParams(window.location.search));
-    }, []);
-
-    return query;
-}
+import { useSearchParams } from "react-router-dom";
+import { ComicViewer } from "@/components/viewer/comic";
 
 export function CBZViewerPage() {
-    const query = useQuery();
+    const [params] = useSearchParams();
+    const path = params.get("path") ?? "";
+    const parsed = parseInt(params.get("position") ?? "", 10);
+    const position = isNaN(parsed) || parsed < 1 ? 1 : parsed;
 
-    if (!query) return <p>Loading...</p>;
-
-    const path = query.get("path") ?? "";
-    const parsed = parseInt(query.get("position") ?? "", 10);
-    const position = isNaN(parsed) ? 1 : parsed;
-
-    return <CBZViewer fileUrl={`/book/cbz?path=${encodeURIComponent(path)}`} initialPage={position} />;
+    // Keyed by path so moving to the next volume remounts the viewer.
+    return <ComicViewer key={path} kind="cbz" path={path} initialPage={position} />;
 }
