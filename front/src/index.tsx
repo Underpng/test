@@ -8,7 +8,7 @@ import { initTheme } from "./lib/theme";
 
 import HomePage from "./pages/home";
 import SearchPage from "./pages/search";
-import AllPage from "./pages/all";
+import SeriesPage from "./pages/series";
 import RootPage from "./pages/root";
 import { PDFViewerPage } from "./pages/viewer/pdf";
 import { EPUBViewerPage } from "./pages/viewer/epub";
@@ -30,7 +30,7 @@ root.render(
 				<Route path="/" element={<Layout />}>
 					<Route index element={<HomePage />} />
 					<Route path="root/*" element={<RootPage />} />
-					<Route path="all" element={<AllPage />} />
+					<Route path="series" element={<SeriesPage />} />
 					<Route path="search" element={<SearchPage />} />
 				</Route>
 				<Route path="/viewer/pdf" element={<PDFViewerPage />} />

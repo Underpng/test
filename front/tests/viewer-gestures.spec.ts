@@ -67,3 +67,22 @@ test("home page groups reading, next volume and arrivals", async ({ page }) => {
 	await page.goto("/");
 	await expect(page.getByRole("heading", { name: "ホーム" })).toBeVisible();
 });
+
+test("series are folders holding volumes", async ({ page }) => {
+	const res = await page.request.get("/api/series?sort=title&order=asc");
+	expect(res.ok()).toBeTruthy();
+	const body = (await res.json()) as { books: (Book & { count?: number })[] };
+	test.skip(body.books.length === 0, "no series in the library");
+	const s = body.books[0];
+	expect(s.type).toBe("Series");
+	expect(s.count).toBeGreaterThan(0);
+
+	// The folder listing carries the series summary with a volume to resume.
+	const folder = await page.request.get(`/api/root${s.path}`);
+	const listing = (await folder.json()) as { series?: { count: number; continue?: Book } };
+	expect(listing.series?.count).toBe(s.count);
+
+	await page.goto("/series");
+	await expect(page.getByRole("heading", { name: "シリーズ" })).toBeVisible();
+	await expect(page.getByText(`${s.count} 巻`).first()).toBeVisible();
+});

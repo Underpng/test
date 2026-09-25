@@ -36,6 +36,8 @@ type Entry struct {
 	Title           string  `json:"title"`
 	CurrentPosition string  `json:"currentPosition"`
 	Progress        float64 `json:"progress"`
+	Count           int     `json:"count,omitempty"`    // Series: number of volumes
+	Finished        int     `json:"finished,omitempty"` // Series: volumes read
 }
 
 func entryOf(b db.Book) Entry {
@@ -54,6 +56,7 @@ func (s *Server) Handler() http.Handler {
 
 	mux.HandleFunc("GET /api/home", s.home)
 	mux.HandleFunc("GET /api/all", s.all)
+	mux.HandleFunc("GET /api/series", s.seriesList)
 	mux.HandleFunc("GET /api/root", s.root)
 	mux.HandleFunc("GET /api/root/{path...}", s.root)
 	mux.HandleFunc("GET /api/search", s.search)
@@ -124,6 +127,10 @@ func (s *Server) paging(r *http.Request) paging {
 
 // listResponse trims the extra row used to detect more pages.
 func (s *Server) listResponse(w http.ResponseWriter, prefix []Entry, books []db.Book) {
+	s.listResponseExtra(w, prefix, books, nil)
+}
+
+func (s *Server) listResponseExtra(w http.ResponseWriter, prefix []Entry, books []db.Book, extra map[string]any) {
 	hasMore := false
 	if len(books) > s.PageSize {
 		hasMore = true
@@ -134,7 +141,11 @@ func (s *Server) listResponse(w http.ResponseWriter, prefix []Entry, books []db.
 	for _, b := range books {
 		entries = append(entries, entryOf(b))
 	}
-	writeJSON(w, map[string]any{"books": entries, "hasMore": hasMore})
+	out := map[string]any{"books": entries, "hasMore": hasMore}
+	for k, v := range extra {
+		out[k] = v
+	}
+	writeJSON(w, out)
 }
 
 func (s *Server) all(w http.ResponseWriter, r *http.Request) {
@@ -167,7 +178,18 @@ func (s *Server) root(w http.ResponseWriter, r *http.Request) {
 		s.fail(w, 500, "db query failed", err)
 		return
 	}
-	s.listResponse(w, prefix, books)
+	extra := map[string]any{}
+	if p.offset == 0 {
+		if sr := s.seriesOf(folder); sr != nil {
+			info := map[string]any{"title": sr.Title, "count": len(sr.Volumes), "finished": sr.Finished}
+			if c := sr.continueVolume(); c != nil {
+				e := entryOf(*c)
+				info["continue"] = e
+			}
+			extra["series"] = info
+		}
+	}
+	s.listResponseExtra(w, prefix, books, extra)
 }
 
 func (s *Server) search(w http.ResponseWriter, r *http.Request) {

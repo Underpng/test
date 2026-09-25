@@ -94,6 +94,8 @@ Playwright は `http://localhost:50080` に対して動きます。dev サーバ
 |----------------|------|
 | `GET /api/root/{folder}` | フォルダ直下のサブフォルダと本（`sort`, `order`, `page`） |
 | `GET /api/all` | 全冊フラット |
+| `GET /api/series` | シリーズ（本が直接入っているフォルダ）の一覧。巻数・読了数付き |
+| `GET /api/home` | ホーム用: 読みかけ（シリーズごとに 1 冊）、次の巻、新着（シリーズ単位） |
 | `GET /api/search?q=` | タイトル前方一致。`#タグ` でメタデータ検索 |
 | `GET /api/neighbors?path=` | 同じフォルダ内の前後の本（次巻ナビ用） |
 | `GET /api/progress?path=&position=&progress=` | 読書位置の保存 |

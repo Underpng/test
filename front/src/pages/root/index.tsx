@@ -1,14 +1,47 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Play } from "lucide-react";
 import type { SortKey, SortOrder } from "@/api/interface";
-import { InfiniteBookList } from "@/components/infinite_book_list";
+import { InfiniteBookList, type SeriesInfo } from "@/components/infinite_book_list";
 import { SortControls } from "@/components/sort-controls";
+import { Button } from "@/components/ui/button";
+import { viewerUrl } from "@/lib/viewer-url";
+
+// Summary strip shown above a series folder: progress and where to resume.
+function SeriesHeader({ info }: { info: SeriesInfo }) {
+	const pct = info.count > 0 ? Math.round((info.finished / info.count) * 100) : 0;
+	const c = info.continue;
+	const allRead = !c && info.finished === info.count && info.count > 0;
+	return (
+		<div className="flex flex-col gap-3 rounded-3xl bg-surface-low px-5 py-4 sm:flex-row sm:items-center sm:gap-4">
+			<div className="min-w-0 flex-1">
+				<p className="whitespace-nowrap text-sm text-muted-foreground">
+					全 {info.count} 巻
+					{info.finished > 0 && ` · ${info.finished} 巻読了`}
+				</p>
+				<div className="mt-2 h-1.5 max-w-xs overflow-hidden rounded-full bg-surface-highest">
+					<div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
+				</div>
+			</div>
+			{c && (
+				<Button asChild className="w-full px-5 sm:w-auto">
+					<Link to={viewerUrl(c)}>
+						<Play size={16} />
+						{c.progress > 0 ? "続きから" : "読み始める"}
+						<span className="min-w-0 max-w-[12rem] truncate font-normal opacity-80">{c.title}</span>
+					</Link>
+				</Button>
+			)}
+			{allRead && <p className="text-sm text-primary">すべて読了</p>}
+		</div>
+	);
+}
 
 export default function RootPage() {
 	const location = useLocation();
 	const [sortKey, setSortKey] = useState<SortKey>("title");
 	const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
+	const [series, setSeries] = useState<SeriesInfo | null>(null);
 
 	// "/root/A/B" -> ["A", "B"]
 	const segments = location.pathname
@@ -46,11 +79,14 @@ export default function RootPage() {
 				/>
 			</div>
 
+			{series && <SeriesHeader info={series} />}
+
 			<InfiniteBookList
 				key={`${apiEndpoint}-${sortKey}-${sortOrder}`}
 				apiEndpoint={apiEndpoint}
 				sortKey={sortKey}
 				sortOrder={sortOrder}
+				onSeries={setSeries}
 			/>
 		</div>
 	);

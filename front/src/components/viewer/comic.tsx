@@ -295,6 +295,17 @@ export function ComicViewer({ kind, path, title, initialPage = 1 }: ComicViewerP
         return () => window.clearTimeout(t);
     }, []);
 
+    // The reader is always dark, so sheets and dialogs opened from it use
+    // the dark tokens regardless of the app theme.
+    useEffect(() => {
+        const root = document.documentElement;
+        const wasDark = root.classList.contains("dark");
+        root.classList.add("dark");
+        return () => {
+            if (!wasDark) root.classList.remove("dark");
+        };
+    }, []);
+
     // Keep Safari from zooming the whole page and stop the callout on long press.
     useEffect(() => {
         const meta = document.querySelector<HTMLMetaElement>('meta[name="viewport"]');

@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { NavLink } from "react-router-dom";
-import { BookCopy, BookOpenText, Home, LibraryBig, Monitor, Moon, Search, Sun } from "lucide-react";
+import { BookOpenText, Home, Layers, LibraryBig, Monitor, Moon, Search, Sun } from "lucide-react";
 import { getThemeSetting, setThemeSetting, type ThemeSetting } from "@/lib/theme";
 
 const items = [
     { to: "/", label: "ホーム", icon: Home, end: true },
     { to: "/root", label: "本棚", icon: LibraryBig, end: false },
-    { to: "/all", label: "すべて", icon: BookCopy, end: false },
+    { to: "/series", label: "シリーズ", icon: Layers, end: false },
     { to: "/search", label: "検索", icon: Search, end: false },
 ];
 

@@ -3,16 +3,25 @@ import { useInView } from "react-intersection-observer"
 import { BookCard } from "@/components/bookcard"
 import { BookEntry, SortKey, SortOrder } from "@/api/interface"
 
+export type SeriesInfo = {
+    title: string
+    count: number
+    finished: number
+    continue?: BookEntry
+}
+
 interface InfiniteBookListProps {
     apiEndpoint: string
     sortKey: SortKey
     sortOrder: SortOrder
     q?: string
+    // Called with the folder's series summary (first page only), if any.
+    onSeries?: (info: SeriesInfo | null) => void
 }
 
 // Responsive cover grid that loads the next page when the sentinel at the
 // bottom scrolls into view.
-export function InfiniteBookList({ apiEndpoint, sortKey, sortOrder, q }: InfiniteBookListProps) {
+export function InfiniteBookList({ apiEndpoint, sortKey, sortOrder, q, onSeries }: InfiniteBookListProps) {
     const [books, setBooks] = useState<BookEntry[]>([])
     const [page, setPage] = useState(1)
     const [hasMore, setHasMore] = useState(true)
@@ -41,6 +50,7 @@ export function InfiniteBookList({ apiEndpoint, sortKey, sortOrder, q }: Infinit
                 setBooks((prev) => [...prev, ...data.books])
                 setHasMore(data.hasMore)
                 setPage((p) => p + 1)
+                if (page === 1) onSeries?.(data.series ?? null)
             } catch (e) {
                 console.error(e)
                 if (!cancelled) setHasMore(false)

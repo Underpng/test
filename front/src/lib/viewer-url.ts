@@ -14,6 +14,7 @@ export function viewerUrl(book: BookEntry, position?: string): string {
         case "CBR":
             return `/viewer/${book.type.toLowerCase()}?title=${title}&path=${path}&position=${pos}`;
         case "Folder":
+        case "Series":
             return `/root${book.path}`;
         default:
             console.warn("Unknown book type:", book.type);
