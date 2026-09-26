@@ -35,6 +35,23 @@ powershell -ExecutionPolicy Bypass -File scripts\install-autostart.ps1
 
 解除は `-Remove` を付けて実行。ログは `data\server.log` に出ます。
 
+### 家の外から読む（Tailscale）
+
+[Tailscale](https://tailscale.com/) を使うと、自分の端末同士だけを暗号化してつなげます。ポート開放は不要で、他人からは届きません（このサーバーにはログイン機能が無いので、ルーターのポート開放やトンネルでネットに公開するのはやめてください）。
+
+1. PC と iPhone の両方に Tailscale を入れ、同じアカウントでログインする。
+2. iPhone の Safari で `http://<PC の名前>:50080` を開いてホーム画面に追加する（PC の名前は Tailscale アプリの端末一覧に出ます）。この URL は家の中でも外でも使えます。
+3. iPhone では VPN は同時に 1 つしか使えません。他の VPN アプリをオンにすると Tailscale が切れます。
+
+### 通信量の節約
+
+家の外（Tailscale やインターネット経由）から読むと、漫画のページを自動で縦 1200px・JPEG 画質 70 に縮めて送ります。1 冊あたりの通信量はおよそ半分になります（実測 67 MB → 31 MB）。
+
+- 白黒ページとカラーページはページごとに自動で判定し、カラーはカラーのまま縮めます。
+- 巻を開くと、残りのページを裏で先回りして変換し `data\saver` に保存します（1 巻 20 秒ほど、メモリは一時的に 10〜15 MB 増える程度）。素早くめくっても変換待ちになりません。キャッシュは既定で 2 GB までで、古いものから消えます。
+- ビューアの設定の「画質（漫画）」で、自動 / 常に元画像 / 常に節約 を選べます。
+- 画面の部品（JS・CSS・PDF エンジン）は gzip で圧縮して送ります（初回 6.9 MB → 2.7 MB）。
+
 ### 設定
 
 フラグまたは環境変数で指定します。既定値は exe の隣の `books` と `data`、ポート 50080。
@@ -48,6 +65,10 @@ powershell -ExecutionPolicy Bypass -File scripts\install-autostart.ps1
 | `-page-size` | `PAGE_SIZE` | 20 | 一覧1ページあたりの表示数 |
 | `-cover-size` | `COVER_SIZE` | 300 | 表紙サムネイルの短辺(px) |
 | `-cover-quality` | `COVER_QUALITY` | 75 | 表紙JPEGの品質 |
+| `-saver` | `SAVER` | true | 家の外からのアクセスで漫画のページを縮めて送る |
+| `-saver-height` | `SAVER_HEIGHT` | 1200 | 節約モードのページの高さ(px) |
+| `-saver-quality` | `SAVER_QUALITY` | 70 | 節約モードの JPEG 品質 |
+| `-saver-cache-mb` | `SAVER_CACHE_MB` | 2048 | 節約モードの変換キャッシュの上限(MB) |
 | `-7z` | `SEVENZIP` | 自動検出 | 7-Zip の実行ファイル（CBR 用） |
 | `-log` | `LOG_FILE` | `data\server.log` | ログファイル（`-` でコンソールのみ） |
 
@@ -101,8 +122,9 @@ Playwright は `dist\shelf.exe` を生成したテスト用蔵書（`tests/fixtu
 | `GET /api/progress?path=&position=&progress=` | 読書位置の保存 |
 | `GET /api/access?path=` | 最終アクセスの記録 |
 | `GET /api/rescan` | 再スキャンを開始 |
+| `GET /api/client` | この接続が家の外扱いか（自動画質の判定結果） |
 | `GET /api/status` | 冊数、最終スキャン結果 |
-| `GET /book/cbz?path=&page=` / `/book/cbz/pages` | CBZ のページ画像とページ数（CBR も同様） |
+| `GET /book/cbz?path=&page=[&q=saver\|original]` / `/book/cbz/pages` | CBZ のページ画像とページ数（CBR も同様）。`q` を省くと接続元で自動判定。応答ヘッダー `X-Shelf-Quality` に実際の画質 |
 | `GET /book/epub?path=` / `/book/pdf?path=` | ファイルそのもの（Range 対応） |
 | `GET /cover/{path}.jpg` | 表紙 |
 

@@ -13,6 +13,7 @@ import (
 
 	"shelf/internal/db"
 	"shelf/internal/library"
+	"shelf/internal/saver"
 	"shelf/internal/scan"
 )
 
@@ -23,6 +24,7 @@ type Server struct {
 	CoverDir string
 	PageSize int
 	SevenZip string
+	Saver    *saver.Saver // nil disables data saving
 	Static   fs.FS
 	Version  string
 	Log      *log.Logger
@@ -68,10 +70,11 @@ func (s *Server) Handler() http.Handler {
 
 	mux.HandleFunc("GET /book/epub", s.wholeFile("application/epub+zip"))
 	mux.HandleFunc("GET /book/pdf", s.wholeFile("application/pdf"))
-	mux.HandleFunc("GET /book/cbz/pages", s.cbzPages)
-	mux.HandleFunc("GET /book/cbz", s.cbzPage)
-	mux.HandleFunc("GET /book/cbr/pages", s.cbrPages)
-	mux.HandleFunc("GET /book/cbr", s.cbrPage)
+	mux.HandleFunc("GET /book/cbz/pages", s.comicPages("cbz"))
+	mux.HandleFunc("GET /book/cbz", s.comicPage("cbz"))
+	mux.HandleFunc("GET /book/cbr/pages", s.comicPages("cbr"))
+	mux.HandleFunc("GET /book/cbr", s.comicPage("cbr"))
+	mux.HandleFunc("GET /api/client", s.client)
 
 	mux.HandleFunc("GET /cover/{path...}", s.cover)
 
@@ -307,10 +310,11 @@ func (s *Server) status(w http.ResponseWriter, r *http.Request) {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
 	writeJSON(w, map[string]any{
-		"version":  s.Version,
-		"books":    n,
-		"booksDir": s.Lib.BooksDir,
-		"sevenZip": s.SevenZip != "",
+		"version":    s.Version,
+		"books":      n,
+		"booksDir":   s.Lib.BooksDir,
+		"sevenZip":   s.SevenZip != "",
+		"saverCache": s.saverUsage(),
 		"memoryMB": map[string]uint64{
 			"goHeapInUse": m.HeapInuse >> 20,
 			"goTotal":     m.Sys >> 20,
@@ -323,4 +327,12 @@ func (s *Server) status(w http.ResponseWriter, r *http.Request) {
 			"duration": last.Duration.String(),
 		},
 	})
+}
+
+func (s *Server) saverUsage() map[string]any {
+	if s.Saver == nil {
+		return map[string]any{"enabled": false}
+	}
+	files, size := s.Saver.Usage()
+	return map[string]any{"enabled": true, "pages": files, "mb": size >> 20}
 }

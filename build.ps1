@@ -26,6 +26,9 @@ if (-not $SkipFront) {
 $embed = Join-Path $root 'back\web\dist'
 Get-ChildItem $embed -Exclude '.gitkeep' | Remove-Item -Recurse -Force
 Copy-Item (Join-Path $root 'front\dist\*') $embed -Recurse -Force
+# Ship compressible assets gzipped; the server sends them as is.
+node (Join-Path $root 'front\scripts\precompress.mjs') $embed
+if ($LASTEXITCODE -ne 0) { throw 'precompress failed' }
 
 $out = Join-Path $root 'dist'
 New-Item -ItemType Directory -Force $out | Out-Null

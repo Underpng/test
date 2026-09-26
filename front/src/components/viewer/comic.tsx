@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Settings2 } from "lucide-react";
 import { Sheet, SheetTrigger } from "@/components/ui/sheet";
 import { Slider } from "@/components/ui/slider";
-import { ViewerOptionSheet, loadOptions, resolveSpread, type Spread, type ViewerOptions } from "./sheet";
+import { ViewerOptionSheet, loadOptions, qualityParam, resolveSpread, type Spread, type ViewerOptions } from "./sheet";
 import { EndOfBook } from "./end-of-book";
 import { sendProgress } from "@/api/progress";
 import { sendAccess } from "@/api/access";
@@ -103,8 +103,8 @@ export function ComicViewer({ kind, path, title, initialPage = 1 }: ComicViewerP
     const encodedPath = encodeURIComponent(path);
     // `reload` busts the cache after a failed image load.
     const pageUrl = useCallback(
-        (n: number) => `/book/${kind}?path=${encodedPath}&page=${n}${reload ? `&r=${reload}` : ""}`,
-        [kind, encodedPath, reload],
+        (n: number) => `/book/${kind}?path=${encodedPath}&page=${n}${qualityParam(options.quality)}${reload ? `&r=${reload}` : ""}`,
+        [kind, encodedPath, reload, options.quality],
     );
     const displayTitle = title || decodeURIComponent(path.split("/").pop() ?? "").replace(/\.[^.]+$/, "");
 
@@ -495,7 +495,7 @@ export function ComicViewer({ kind, path, title, initialPage = 1 }: ComicViewerP
         numPages !== null &&
         numPages - last <= PREFETCH_BEFORE_END &&
         (nextVolume.type === "CBZ" || nextVolume.type === "CBR")
-            ? `/book/${nextVolume.type.toLowerCase()}?path=${encodeURIComponent(nextVolume.path)}&page=1`
+            ? `/book/${nextVolume.type.toLowerCase()}?path=${encodeURIComponent(nextVolume.path)}&page=1${qualityParam(options.quality)}`
             : null;
 
     const slot = (pages: number[] | null, offset: number, role: "prev" | "cur" | "next") =>

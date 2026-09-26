@@ -62,6 +62,31 @@ function png(width, height, [r, g, b], bandRow) {
 	]);
 }
 
+// A tall, noisy grayscale page like a real scan, big enough for the data
+// saver to shrink (it caps pages at 1200 px tall).
+function scanPng(width, height) {
+	const raw = Buffer.alloc((width + 1) * height);
+	let seed = 99;
+	for (let y = 0; y < height; y++) {
+		raw[y * (width + 1)] = 0;
+		for (let x = 0; x < width; x++) {
+			seed = (seed * 1664525 + 1013904223) >>> 0;
+			raw[y * (width + 1) + 1 + x] = 150 + (seed >>> 27) + ((x >> 5) % 2) * 60;
+		}
+	}
+	const ihdr = Buffer.alloc(13);
+	ihdr.writeUInt32BE(width, 0);
+	ihdr.writeUInt32BE(height, 4);
+	ihdr[8] = 8; // bit depth
+	ihdr[9] = 0; // grayscale
+	return Buffer.concat([
+		Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+		chunk("IHDR", ihdr),
+		chunk("IDAT", deflateSync(raw)),
+		chunk("IEND", Buffer.alloc(0)),
+	]);
+}
+
 // ---------- ZIP (store only) ----------
 function zip(entries) {
 	const locals = [];
@@ -107,11 +132,12 @@ function zip(entries) {
 }
 
 // ---------- books ----------
-function cbz(pages, tint) {
+function cbz(pages, tint, tallLastPage = false) {
 	const entries = [];
 	for (let i = 1; i <= pages; i++) {
 		entries.push([`page${String(i).padStart(3, "0")}.png`, png(300, 450, tint, 40 + i * 50)]);
 	}
+	if (tallLastPage) entries.push([`page${String(pages + 1).padStart(3, "0")}.png`, scanPng(900, 1800)]);
 	return zip(entries);
 }
 
@@ -146,7 +172,7 @@ function epub(title, chapters) {
 rmSync(out, { recursive: true, force: true });
 mkdirSync(join(out, "テスト漫画"), { recursive: true });
 mkdirSync(join(out, "テスト小説"), { recursive: true });
-writeFileSync(join(out, "テスト漫画", "Test Comic v01.cbz"), cbz(5, [235, 200, 170]));
+writeFileSync(join(out, "テスト漫画", "Test Comic v01.cbz"), cbz(5, [235, 200, 170], true));
 writeFileSync(join(out, "テスト漫画", "Test Comic v02.cbz"), cbz(4, [200, 220, 235]));
 writeFileSync(join(out, "テスト小説", "Test Novel 01.epub"), epub("Test Novel 01", [1, 2, 3]));
 writeFileSync(join(out, "テスト小説", "Test Novel 02.epub"), epub("Test Novel 02", [1, 2]));

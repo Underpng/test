@@ -26,6 +26,7 @@ import (
 	"shelf/internal/cover"
 	"shelf/internal/db"
 	"shelf/internal/library"
+	"shelf/internal/saver"
 	"shelf/internal/scan"
 	"shelf/web"
 )
@@ -42,6 +43,10 @@ type config struct {
 	sevenZip     string
 	scanInterval time.Duration
 	logFile      string
+	saver        bool
+	saverHeight  int
+	saverQuality int
+	saverCacheMB int
 }
 
 func envOr(key, def string) string {
@@ -53,6 +58,13 @@ func envOr(key, def string) string {
 
 func envInt(key string, def int) int {
 	if v, err := strconv.Atoi(os.Getenv(key)); err == nil {
+		return v
+	}
+	return def
+}
+
+func envBool(key string, def bool) bool {
+	if v, err := strconv.ParseBool(os.Getenv(key)); err == nil {
 		return v
 	}
 	return def
@@ -94,6 +106,10 @@ func loadConfig() config {
 	flag.IntVar(&c.coverQuality, "cover-quality", envInt("COVER_QUALITY", 75), "cover JPEG quality")
 	flag.StringVar(&c.sevenZip, "7z", envOr("SEVENZIP", ""), "path to the 7-Zip executable (for CBR); auto-detected when empty")
 	flag.DurationVar(&c.scanInterval, "scan-interval", envDuration("SCAN_INTERVAL", 10*time.Minute), "how often to look for new books (0 disables)")
+	flag.BoolVar(&c.saver, "saver", envBool("SAVER", true), "shrink comic pages for readers outside the home LAN (data saver)")
+	flag.IntVar(&c.saverHeight, "saver-height", envInt("SAVER_HEIGHT", 1200), "data saver: page height in pixels")
+	flag.IntVar(&c.saverQuality, "saver-quality", envInt("SAVER_QUALITY", 70), "data saver: JPEG quality")
+	flag.IntVar(&c.saverCacheMB, "saver-cache-mb", envInt("SAVER_CACHE_MB", 2048), "data saver: disk cache budget in MB")
 	flag.StringVar(&c.logFile, "log", envOr("LOG_FILE", ""), "log file path ('-' for console only); default data/server.log")
 	showVersion := flag.Bool("version", false, "print the version and exit")
 	flag.Parse()
@@ -216,6 +232,23 @@ func main() {
 		PdfInfo:  pdfInfo,
 		Log:      logger,
 	}
+	var pageSaver *saver.Saver
+	if c.saver {
+		pageSaver, err = saver.New(saver.Options{
+			Dir:        filepath.Join(c.dataDir, "saver"),
+			MaxHeight:  c.saverHeight,
+			Quality:    c.saverQuality,
+			MaxBytes:   int64(c.saverCacheMB) << 20,
+			Foreground: 2,
+			WarmAhead:  true,
+			Log:        logger,
+		})
+		if err != nil {
+			logger.Printf("data saver disabled: %v", err)
+			pageSaver = nil
+		}
+	}
+
 	srv := &api.Server{
 		Lib:      lib,
 		DB:       database,
@@ -223,6 +256,7 @@ func main() {
 		CoverDir: coverDir,
 		PageSize: c.pageSize,
 		SevenZip: sevenZip,
+		Saver:    pageSaver,
 		Static:   web.Dist(),
 		Version:  version,
 		Log:      logger,
