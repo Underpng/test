@@ -63,7 +63,7 @@ export function ViewerLayout({
     };
 
     return (
-        <div className="w-full h-screen relative">
+        <div className="fixed inset-0">
             <button
                 type="button"
                 aria-label="本棚へ戻る"

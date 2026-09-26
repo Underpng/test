@@ -549,7 +549,7 @@ export function ComicViewer({ kind, path, title, initialPage = 1 }: ComicViewerP
     return (
         <div
             ref={containerRef}
-            className="relative h-screen w-screen select-none overflow-hidden bg-black"
+            className="fixed inset-0 select-none overflow-hidden bg-black"
             style={{ touchAction: "none" }}
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
