@@ -2,12 +2,12 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Settings2 } from "lucide-react";
 import { Sheet, SheetTrigger } from "@/components/ui/sheet";
-import { Slider } from "@/components/ui/slider";
 import { ViewerOptionSheet, loadOptions, qualityParam, resolveSpread, type Spread, type ViewerOptions } from "./sheet";
 import { EndOfBook } from "./end-of-book";
 import { sendProgress } from "@/api/progress";
 import { sendAccess } from "@/api/access";
-import { fetchNeighbors, Neighbors } from "@/api/neighbors";
+import { shelfUrl, useNeighbors } from "@/api/neighbors";
+import { ImmersiveButton, PageSlider, VolumeChip, useImmersive } from "./controls";
 import { BookEntry } from "@/api/interface";
 import { useWindowSize } from "@/hooks/windowSize";
 import { continuePosition, viewerUrl } from "@/lib/viewer-url";
@@ -77,9 +77,12 @@ export function ComicViewer({ kind, path, title, initialPage = 1 }: ComicViewerP
     const [page, setPage] = useState(Math.max(1, initialPage));
     const [sliderValue, setSliderValue] = useState([Math.max(1, initialPage)]);
     const [options, setOptions] = useState<ViewerOptions>(loadOptions);
-    const [neighbors, setNeighbors] = useState<Neighbors | null>(null);
+    const nb = useNeighbors(path);
+    const neighbors = nb.data;
     const [edge, setEdge] = useState<"none" | "end" | "start">("none");
-    const [chrome, setChrome] = useState(true);
+    const { immersive, toggleImmersive, exitBrowserFullscreen } = useImmersive();
+    // In full-screen reading mode the bars start hidden.
+    const [chrome, setChrome] = useState(() => !immersive);
     const [zoomed, setZoomed] = useState(false);
     const [loadError, setLoadError] = useState<string | null>(null);
     const [pageError, setPageError] = useState(false);
@@ -186,9 +189,6 @@ export function ComicViewer({ kind, path, title, initialPage = 1 }: ComicViewerP
                 console.error("Error fetching page count:", err);
                 if (!cancelled) setLoadError(err instanceof TypeError ? "サーバーに接続できません。" : err.message);
             });
-        fetchNeighbors(path).then((nb) => {
-            if (!cancelled) setNeighbors(nb);
-        });
         return () => {
             cancelled = true;
         };
@@ -246,8 +246,9 @@ export function ComicViewer({ kind, path, title, initialPage = 1 }: ComicViewerP
     );
 
     const toShelf = useCallback(() => {
-        navigate(neighbors ? `/root${neighbors.folder}` : "/");
-    }, [navigate, neighbors]);
+        exitBrowserFullscreen();
+        navigate(shelfUrl(neighbors));
+    }, [navigate, neighbors, exitBrowserFullscreen]);
 
     const finish = () => {
         if (numPages) scheduleProgress(numPages, true);
@@ -272,7 +273,10 @@ export function ComicViewer({ kind, path, title, initialPage = 1 }: ComicViewerP
             if (neighbors?.prev) openBook(neighbors.prev);
             return;
         }
-        if (prevStart === null) return setEdge("start");
+        if (prevStart === null) {
+            if (neighbors && !neighbors.series) return;
+            return setEdge("start");
+        }
         animateTurn(dirSign * winW, () => goTo(prevStart));
     };
 
@@ -312,6 +316,12 @@ export function ComicViewer({ kind, path, title, initialPage = 1 }: ComicViewerP
         const t = window.setTimeout(() => setChrome(false), CHROME_HIDE_MS);
         return () => window.clearTimeout(t);
     }, []);
+
+    const onToggleImmersive = () => {
+        // Entering hides the bars at once; leaving brings them back.
+        setChrome(immersive);
+        toggleImmersive();
+    };
 
     // The reader is always dark, so sheets and dialogs opened from it use
     // the dark tokens regardless of the app theme.
@@ -376,6 +386,9 @@ export function ComicViewer({ kind, path, title, initialPage = 1 }: ComicViewerP
 
     const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
         if (e.pointerType === "mouse" && e.button !== 0) return;
+        // Events from the settings sheet bubble here through the React tree
+        // (it is rendered in a portal); they are not gestures on the page.
+        if (!e.currentTarget.contains(e.target as Node)) return;
         e.currentTarget.setPointerCapture(e.pointerId);
         pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
         const g = gesture.current;
@@ -478,7 +491,7 @@ export function ComicViewer({ kind, path, title, initialPage = 1 }: ComicViewerP
         } else {
             if (prevStart === null) {
                 applyTrack(0, true);
-                setEdge("start");
+                if (!neighbors || neighbors.series) setEdge("start");
             } else animateTurn(dirSign * winW, () => goTo(prevStart));
         }
     };
@@ -524,7 +537,12 @@ export function ComicViewer({ kind, path, title, initialPage = 1 }: ComicViewerP
             </div>
         );
 
-    const stop = (e: React.PointerEvent) => e.stopPropagation();
+    // Keep taps on the bars away from the page gestures, but only taps that
+    // really are on the bar: the settings sheet is portalled elsewhere and
+    // its outside-tap detection needs the event to reach the document.
+    const stop = (e: React.PointerEvent) => {
+        if (e.currentTarget.contains(e.target as Node)) e.stopPropagation();
+    };
     const barClass = (visible: boolean) =>
         `absolute inset-x-0 z-30 text-white transition-[opacity,visibility] duration-200 ${visible ? "visible opacity-100" : "invisible pointer-events-none opacity-0"}`;
 
@@ -562,9 +580,6 @@ export function ComicViewer({ kind, path, title, initialPage = 1 }: ComicViewerP
                     <ArrowLeft />
                 </button>
                 <div className="min-w-0 flex-1 truncate text-sm">{displayTitle}</div>
-                <div data-testid="page-indicator" className="px-2 text-xs tabular-nums text-neutral-300">
-                    {view.length === 2 ? `${start}-${last}` : start} / {numPages ?? "…"}
-                </div>
                 <Sheet>
                     <SheetTrigger asChild>
                         <button type="button" aria-label="表示設定" className="p-3">
@@ -581,21 +596,28 @@ export function ComicViewer({ kind, path, title, initialPage = 1 }: ComicViewerP
                 style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 12px)" }}
                 onPointerDown={stop}
             >
-                <Slider
+                <PageSlider
                     value={sliderValue}
                     min={1}
                     max={numPages ?? 1}
                     step={1}
                     dir={direction}
+                    label="ページ"
+                    format={(v) => `${v} / ${numPages ?? "…"}`}
                     onValueChange={(v) => setSliderValue(v)}
                     onValueCommit={(v) => v.length > 0 && goTo(viewStart(v[0], spread))}
-                    aria-label="ページ"
                 />
-                {neighbors && neighbors.total > 1 && (
-                    <p className="mt-2 text-center text-xs text-neutral-400">
-                        {neighbors.index} / {neighbors.total} 巻
-                    </p>
-                )}
+                <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+                    <div />
+                    <div data-testid="page-indicator" className="tabular-nums">
+                        <span className="text-lg font-semibold">{view.length === 2 ? `${start}-${last}` : start}</span>
+                        <span className="text-sm text-neutral-400"> / {numPages ?? "…"}</span>
+                    </div>
+                    <div className="flex items-center justify-end gap-2">
+                        {neighbors && neighbors.series && neighbors.total > 1 && <VolumeChip index={neighbors.index} total={neighbors.total} />}
+                        <ImmersiveButton on={immersive} onToggle={onToggleImmersive} />
+                    </div>
+                </div>
             </div>
 
             {(loadError || pageError) && (
@@ -631,13 +653,9 @@ export function ComicViewer({ kind, path, title, initialPage = 1 }: ComicViewerP
             {edge !== "none" && (
                 <EndOfBook
                     mode={edge}
-                    neighbor={edge === "end" ? neighbors?.next ?? null : neighbors?.prev ?? null}
-                    index={neighbors?.index ?? 0}
-                    total={neighbors?.total ?? 0}
-                    onContinue={() => {
-                        const target = edge === "end" ? neighbors?.next : neighbors?.prev;
-                        if (target) openBook(target);
-                    }}
+                    state={nb.state}
+                    onOpen={openBook}
+                    onRetry={nb.retry}
                     onClose={() => setEdge("none")}
                     onShelf={toShelf}
                 />

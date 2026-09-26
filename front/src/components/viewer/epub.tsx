@@ -3,12 +3,12 @@ import { useNavigate } from "react-router-dom";
 import ePub, { type Book, type Rendition } from "epubjs";
 import { ArrowLeft, Moon, Settings2, Sun } from "lucide-react";
 import { Sheet, SheetTrigger } from "@/components/ui/sheet";
-import { Slider } from "@/components/ui/slider";
 import { ViewerOptionSheet, loadOptions, type ViewerOptions } from "./sheet";
 import { EndOfBook } from "./end-of-book";
 import { sendAccess } from "@/api/access";
 import { sendProgress } from "@/api/progress";
-import { fetchNeighbors, Neighbors } from "@/api/neighbors";
+import { shelfUrl, useNeighbors } from "@/api/neighbors";
+import { ImmersiveButton, PageSlider, VolumeChip, useImmersive } from "./controls";
 import { BookEntry } from "@/api/interface";
 import { continuePosition, viewerUrl } from "@/lib/viewer-url";
 import { illustrations } from "@/lib/illustrations";
@@ -38,9 +38,11 @@ export function EpubViewer({ path, title, initialCfi }: EpubViewerProps) {
 
     const [options, setOptions] = useState<ViewerOptions>(loadOptions);
     const [pageTheme, setPageTheme] = useState<PageTheme>(() => (localStorage.getItem("epubTheme") === "light" ? "light" : "dark"));
-    const [neighbors, setNeighbors] = useState<Neighbors | null>(null);
+    const nb = useNeighbors(path);
+    const neighbors = nb.data;
     const [edge, setEdge] = useState<"none" | "end" | "start">("none");
-    const [chrome, setChrome] = useState(true);
+    const { immersive, toggleImmersive, exitBrowserFullscreen } = useImmersive();
+    const [chrome, setChrome] = useState(() => !immersive);
     const [ready, setReady] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [rtl, setRtl] = useState(false);
@@ -61,7 +63,6 @@ export function EpubViewer({ path, title, initialCfi }: EpubViewerProps) {
         setReady(false);
         setError(null);
         sendAccess(path);
-        fetchNeighbors(path).then((n) => !cancelled && setNeighbors(n));
 
         const book = ePub(fileUrl, { openAs: "epub" });
         bookRef.current = book;
@@ -158,7 +159,10 @@ export function EpubViewer({ path, title, initialCfi }: EpubViewerProps) {
         },
         [navigate],
     );
-    const toShelf = useCallback(() => navigate(neighbors ? `/root${neighbors.folder}` : "/"), [navigate, neighbors]);
+    const toShelf = useCallback(() => {
+        exitBrowserFullscreen();
+        navigate(shelfUrl(neighbors));
+    }, [navigate, neighbors, exitBrowserFullscreen]);
 
     const next = () => {
         if (edge === "start") return setEdge("none");
@@ -169,7 +173,10 @@ export function EpubViewer({ path, title, initialCfi }: EpubViewerProps) {
     const prev = () => {
         if (edge === "end") return setEdge("none");
         if (edge === "start") return void (neighbors?.prev && openBook(neighbors.prev));
-        if (atEdge.start) return setEdge("start");
+        if (atEdge.start) {
+            if (neighbors && !neighbors.series) return;
+            return setEdge("start");
+        }
         renditionRef.current?.prev();
     };
     const handlers = useRef({ next, prev });
@@ -207,6 +214,11 @@ export function EpubViewer({ path, title, initialCfi }: EpubViewerProps) {
         const t = window.setTimeout(() => setChrome(false), CHROME_HIDE_MS);
         return () => window.clearTimeout(t);
     }, []);
+
+    const onToggleImmersive = () => {
+        setChrome(immersive);
+        toggleImmersive();
+    };
 
     // Reader chrome is always dark, like the comic viewer.
     useEffect(() => {
@@ -249,7 +261,11 @@ export function EpubViewer({ path, title, initialCfi }: EpubViewerProps) {
         forward ? next() : prev();
     };
 
-    const stop = (e: React.PointerEvent) => e.stopPropagation();
+    // Only stop taps that really are on the bar: the settings sheet lives in
+    // a portal and needs its outside taps to reach the document.
+    const stop = (e: React.PointerEvent) => {
+        if (e.currentTarget.contains(e.target as Node)) e.stopPropagation();
+    };
     const barClass = (visible: boolean) =>
         `absolute inset-x-0 z-30 text-white transition-[opacity,visibility] duration-200 ${visible ? "visible opacity-100" : "invisible pointer-events-none opacity-0"}`;
     const indicator = hasLocations ? `${Math.round(percent * 100)}%` : chapter.total ? `${chapter.index} / ${chapter.total} 章` : "…";
@@ -290,7 +306,6 @@ export function EpubViewer({ path, title, initialCfi }: EpubViewerProps) {
                     <ArrowLeft />
                 </button>
                 <div className="min-w-0 flex-1 truncate text-sm">{displayTitle}</div>
-                <div data-testid="page-indicator" className="px-2 text-xs tabular-nums text-neutral-300">{indicator}</div>
                 <button
                     type="button"
                     aria-label={pageTheme === "dark" ? "紙面を明るくする" : "紙面を暗くする"}
@@ -310,13 +325,15 @@ export function EpubViewer({ path, title, initialCfi }: EpubViewerProps) {
             </div>
 
             <div className={`${barClass(chrome)} bottom-0 bg-black/70 px-4 pt-3`} style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 12px)" }} onPointerDown={stop}>
-                <Slider
+                <PageSlider
                     value={sliderValue}
                     min={0}
                     max={1}
                     step={0.001}
                     dir={rtl ? "rtl" : "ltr"}
                     disabled={!hasLocations}
+                    label="位置"
+                    format={(v) => `${Math.round(v * 100)}%`}
                     onValueChange={(v) => setSliderValue(v)}
                     onValueCommit={(v) => {
                         const book = bookRef.current;
@@ -324,25 +341,23 @@ export function EpubViewer({ path, title, initialCfi }: EpubViewerProps) {
                             renditionRef.current?.display(book.locations.cfiFromPercentage(v[0]));
                         }
                     }}
-                    aria-label="位置"
                 />
-                {neighbors && neighbors.total > 1 && (
-                    <p className="mt-2 text-center text-xs text-neutral-400">
-                        {neighbors.index} / {neighbors.total} 巻
-                    </p>
-                )}
+                <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+                    <div />
+                    <div data-testid="page-indicator" className="text-lg font-semibold tabular-nums">{indicator}</div>
+                    <div className="flex items-center justify-end gap-2">
+                        {neighbors && neighbors.series && neighbors.total > 1 && <VolumeChip index={neighbors.index} total={neighbors.total} />}
+                        <ImmersiveButton on={immersive} onToggle={onToggleImmersive} />
+                    </div>
+                </div>
             </div>
 
             {edge !== "none" && (
                 <EndOfBook
                     mode={edge}
-                    neighbor={edge === "end" ? neighbors?.next ?? null : neighbors?.prev ?? null}
-                    index={neighbors?.index ?? 0}
-                    total={neighbors?.total ?? 0}
-                    onContinue={() => {
-                        const target = edge === "end" ? neighbors?.next : neighbors?.prev;
-                        if (target) openBook(target);
-                    }}
+                    state={nb.state}
+                    onOpen={openBook}
+                    onRetry={nb.retry}
                     onClose={() => setEdge("none")}
                     onShelf={toShelf}
                 />

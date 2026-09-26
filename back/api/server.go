@@ -252,11 +252,20 @@ func (s *Server) access(w http.ResponseWriter, r *http.Request) {
 
 // neighbors returns the previous and next book in the same folder, in
 // natural filename order, so a reader can continue with the next volume.
+// Books lying directly in the library root are not a series: they get no
+// neighbours (the other loose files are unrelated titles).
 func (s *Server) neighbors(w http.ResponseWriter, r *http.Request) {
 	p := bookPath(r)
 	book, err := s.DB.Get(p)
 	if err != nil {
 		s.fail(w, 404, "book not found", nil)
+		return
+	}
+	if book.Parent == "/" {
+		writeJSON(w, map[string]any{
+			"prev": nil, "next": nil, "index": 0, "total": 0,
+			"folder": "/", "series": false,
+		})
 		return
 	}
 	siblings, err := s.DB.FolderBooks(book.Parent)
@@ -286,6 +295,7 @@ func (s *Server) neighbors(w http.ResponseWriter, r *http.Request) {
 		"index":  idx + 1,
 		"total":  len(siblings),
 		"folder": book.Parent,
+		"series": true,
 	})
 }
 

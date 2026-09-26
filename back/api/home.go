@@ -58,6 +58,9 @@ func (s *Server) home(w http.ResponseWriter, r *http.Request) {
 		if len(next) >= 10 {
 			break
 		}
+		if b.Parent == "/" {
+			continue // a loose book has no "next volume"
+		}
 		siblings, err := s.DB.FolderBooks(b.Parent)
 		if err != nil {
 			continue
