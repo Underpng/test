@@ -7,7 +7,7 @@ test("the icon setting switches the logo and the home-screen icon", async ({ pag
 
 	await page.getByRole("button", { name: "設定" }).locator("visible=true").first().click();
 	// Playwright reaches the server over localhost, i.e. from home.
-	await expect(page.getByTestId("icon-note")).toContainText("家のネットワーク");
+	await expect(page.getByTestId("icon-note")).toContainText("LAN内/Wi-Fi接続");
 
 	await page.getByRole("radio", { name: "おでかけ" }).click();
 	await expect(logo).toHaveAttribute("data-variant", "away");

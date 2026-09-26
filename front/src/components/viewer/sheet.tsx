@@ -137,7 +137,7 @@ export function ViewerOptionSheet({ onOptionChanged }: ViewerOptionSheetProps) {
                     </Select>
                     {options.quality === "auto" && autoSaver !== null && (
                         <p className="text-xs text-muted-foreground" data-testid="quality-now">
-                            {autoSaver ? "いまはリモート接続なので、セーブモードで表示しています。" : "いまは LAN 内の Wi-Fi 接続なので、クオリティモードで表示しています。"}
+                            {autoSaver ? "いまはリモート接続なので、セーブモードで表示しています。" : "いまはLAN内/Wi-Fi接続なので、クオリティモードで表示しています。"}
                         </p>
                     )}
                 </div>

@@ -116,7 +116,7 @@ export function SettingsButton({ className = "" }: { className?: string }) {
                         />
                         <p className="text-xs leading-relaxed text-muted-foreground" data-testid="icon-note">
                             {icon.setting === "auto"
-                                ? `自動: いまは${icon.remote ? "家の外からの接続なので「おでかけ」" : "家のネットワークなので「おうち」"}です。`
+                                ? `自動: いまは${icon.remote ? "リモート接続なので「おでかけ」" : "LAN内/Wi-Fi接続なので「おうち」"}です。`
                                 : "選んだアイコンをいつも使います。"}
                             ホーム画面のアイコンは追加したときの絵のまま残るので、変えたいときは一度削除してから追加し直してください。
                         </p>
@@ -135,7 +135,7 @@ export function SettingsButton({ className = "" }: { className?: string }) {
                             ]}
                         />
                         <p className="text-xs leading-relaxed text-muted-foreground">
-                            自動モードに設定すると、LAN内のWi-Fi接続では元画像を読み込むクオリティモード、リモート接続では通信量を約半分に抑えるセーブモードになります。
+                            自動モードに設定すると、LAN内/Wi-Fi接続では元画像を読み込むクオリティモード、リモート接続では通信量を約半分に抑えるセーブモードになります。
                         </p>
                     </section>
                 </div>
