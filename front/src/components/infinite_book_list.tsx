@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { useInView } from "react-intersection-observer"
 import { BookCard, BookCardSkeleton } from "@/components/bookcard"
 import { ErrorCard, describeError } from "@/components/error-card"
@@ -25,54 +25,71 @@ const gridClass =
 
 // Responsive cover grid that loads the next page when the sentinel at the
 // bottom scrolls into view.
+//
+// Callers give it a `key` that changes with the endpoint, sort and query,
+// so a new listing always starts from a fresh component.
 export function InfiniteBookList({ apiEndpoint, sortKey, sortOrder, q, onSeries }: InfiniteBookListProps) {
     const [books, setBooks] = useState<BookEntry[]>([])
     const [page, setPage] = useState(1)
     const [hasMore, setHasMore] = useState(true)
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
-    const [attempt, setAttempt] = useState(0)
+
+    // A request in flight is tracked in a ref, not as an effect dependency:
+    // the sentinel scrolling into view must never cancel a running request
+    // (that used to leave the list stuck empty and "loading").
+    const loading = useRef(false)
+    // Bumped on retry and unmount so late responses are ignored. (React's
+    // development double-mount also passes through here; clearing the
+    // loading flag lets the second mount start its own request.)
+    const generation = useRef(0)
+    useEffect(() => () => {
+        generation.current++
+        loading.current = false
+    }, [])
 
     const { ref, inView } = useInView({ rootMargin: "400px 0px" })
 
     useEffect(() => {
-        setBooks([])
-        setPage(1)
-        setHasMore(true)
-        setError(null)
-    }, [apiEndpoint, sortKey, sortOrder, q, attempt])
-
-    useEffect(() => {
-        if (!hasMore || isLoading || error) return
+        if (!hasMore || error || loading.current) return
         if (page > 1 && !inView) return
 
-        let cancelled = false
-        const load = async () => {
-            setIsLoading(true)
-            try {
-                const res = await fetch(`${apiEndpoint}?sort=${sortKey}&order=${sortOrder}&page=${page}&q=${q ?? ""}`)
+        const gen = generation.current
+        loading.current = true
+        setIsLoading(true)
+        fetch(`${apiEndpoint}?sort=${sortKey}&order=${sortOrder}&page=${page}&q=${q ?? ""}`)
+            .then((res) => {
                 if (!res.ok) throw new Error(`サーバーがエラーを返しました (${res.status})`)
-                const data = await res.json()
-                if (cancelled) return
+                return res.json()
+            })
+            .then((data) => {
+                if (gen !== generation.current) return
                 setBooks((prev) => [...prev, ...data.books])
                 setHasMore(data.hasMore)
-                setPage((p) => p + 1)
                 if (page === 1) onSeries?.(data.series ?? null)
-            } catch (e) {
+                setPage((p) => p + 1)
+            })
+            .catch((e) => {
                 console.error(e)
-                if (!cancelled) setError(describeError(e))
-            } finally {
-                if (!cancelled) setIsLoading(false)
-            }
-        }
-        load()
-        return () => {
-            cancelled = true
-        }
+                if (gen === generation.current) setError(describeError(e))
+            })
+            .finally(() => {
+                if (gen !== generation.current) return
+                loading.current = false
+                setIsLoading(false)
+            })
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [inView, apiEndpoint, sortKey, sortOrder, q, page, hasMore, error])
+    }, [inView, page, hasMore, error])
 
-    const retry = useCallback(() => setAttempt((a) => a + 1), [])
+    const retry = useCallback(() => {
+        generation.current++
+        loading.current = false
+        setBooks([])
+        setHasMore(true)
+        setIsLoading(false)
+        setPage(1)
+        setError(null)
+    }, [])
 
     if (error && books.length === 0) {
         return <ErrorCard detail={error} onRetry={retry} />

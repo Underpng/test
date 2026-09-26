@@ -64,3 +64,16 @@ test("a missing book shows an error with a way back", async ({ page }) => {
 	await page.getByRole("alert").getByRole("button", { name: "本棚へ" }).click();
 	await expect(page).toHaveURL(/\/$/);
 });
+
+test("a slow listing still fills in (no stuck empty grid)", async ({ page }) => {
+	// Delay the first response so the scroll sentinel comes into view while
+	// the request is still running; this used to cancel it and leave the
+	// grid empty forever.
+	await page.route("**/api/series?*", async (route) => {
+		await new Promise((r) => setTimeout(r, 800));
+		await route.continue();
+	});
+	await page.goto("/series");
+	await expect(page.getByRole("heading", { name: "シリーズ" })).toBeVisible();
+	await expect(page.getByTitle("テスト漫画").first()).toBeVisible({ timeout: 10_000 });
+});
