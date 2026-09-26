@@ -39,7 +39,7 @@ test("the reader settings show what auto quality means right now", async ({ page
 	const { width, height } = page.viewportSize()!;
 	await page.mouse.click(width * 0.5, height * 0.5);
 	await page.getByRole("button", { name: "表示設定" }).click();
-	await expect(page.getByTestId("quality-now")).toContainText("家のネットワーク");
+	await expect(page.getByTestId("quality-now")).toContainText("クオリティモード");
 });
 
 test("scripts are served gzipped", async ({ page }) => {

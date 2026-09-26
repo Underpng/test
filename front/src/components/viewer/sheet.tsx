@@ -124,20 +124,20 @@ export function ViewerOptionSheet({ onOptionChanged }: ViewerOptionSheetProps) {
                 </div>
 
                 <div className="grid gap-3">
-                    <Label htmlFor="quality-select">画質（漫画）</Label>
+                    <Label htmlFor="quality-select">画質</Label>
                     <Select value={options.quality} onValueChange={(v) => update({ quality: v as Quality })}>
                         <SelectTrigger id="quality-select">
                             <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="auto">自動（家の Wi-Fi は元画像、外は節約）</SelectItem>
-                            <SelectItem value="original">常に元画像</SelectItem>
-                            <SelectItem value="saver">常に節約（約半分の通信量）</SelectItem>
+                            <SelectItem value="auto">自動</SelectItem>
+                            <SelectItem value="original">クオリティ</SelectItem>
+                            <SelectItem value="saver">セーブ</SelectItem>
                         </SelectContent>
                     </Select>
                     {options.quality === "auto" && autoSaver !== null && (
                         <p className="text-xs text-muted-foreground" data-testid="quality-now">
-                            {autoSaver ? "いまは外からの接続なので、節約画質で表示しています。" : "いまは家のネットワークなので、元画像で表示しています。"}
+                            {autoSaver ? "いまはリモート接続なので、セーブモードで表示しています。" : "いまは LAN 内の Wi-Fi 接続なので、クオリティモードで表示しています。"}
                         </p>
                     )}
                 </div>

@@ -123,19 +123,19 @@ export function SettingsButton({ className = "" }: { className?: string }) {
                     </section>
 
                     <section className="space-y-2">
-                        <h3 className="text-sm font-medium">画質（漫画）</h3>
+                        <h3 className="text-sm font-medium">画質</h3>
                         <Choice<Quality>
                             label="画質"
                             value={quality}
                             onChange={changeQuality}
                             options={[
                                 { value: "auto", label: "自動" },
-                                { value: "original", label: "元画像" },
-                                { value: "saver", label: "節約" },
+                                { value: "original", label: "クオリティ" },
+                                { value: "saver", label: "セーブ" },
                             ]}
                         />
                         <p className="text-xs leading-relaxed text-muted-foreground">
-                            自動は、家のネットワークでは元画像、家の外では約半分の通信量の節約画質になります。
+                            自動モードに設定すると、LAN内のWi-Fi接続では元画像を読み込むクオリティモード、リモート接続では通信量を約半分に抑えるセーブモードになります。
                         </p>
                     </section>
                 </div>
