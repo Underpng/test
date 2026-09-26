@@ -84,5 +84,9 @@ test("series are folders holding volumes", async ({ page }) => {
 
 	await page.goto("/series");
 	await expect(page.getByRole("heading", { name: "シリーズ" })).toBeVisible();
-	await expect(page.getByText(`${s.count} 巻`).first()).toBeVisible();
+	// Look inside this series card only: other tests may be marking volumes
+	// read at the same time, which changes the captions of other cards.
+	const card = page.getByTitle(s.title).first();
+	await expect(card).toBeVisible();
+	await expect(card).toContainText(`${s.count} 巻`);
 });

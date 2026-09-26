@@ -6,6 +6,7 @@ import "./index.css";
 import Layout from "./layout";
 import { initTheme } from "./lib/theme";
 import { preloadIllustrations } from "./lib/illustrations";
+import { initAppIcon } from "./lib/appicon";
 
 import HomePage from "./pages/home";
 import SearchPage from "./pages/search";
@@ -19,6 +20,7 @@ import { CBZViewerPage } from "./pages/viewer/cbz";
 
 initTheme();
 preloadIllustrations();
+initAppIcon();
 
 const container = document.querySelector("#root");
 if (!container) {

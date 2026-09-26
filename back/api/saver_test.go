@@ -13,6 +13,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"testing/fstest"
 
@@ -164,5 +165,50 @@ func TestGzippedStaticAssets(t *testing.T) {
 	h.ServeHTTP(w, r)
 	if w.Header().Get("Content-Encoding") != "" || !bytes.Equal(w.Body.Bytes(), js) {
 		t.Fatal("expected decompressed content for a client without gzip")
+	}
+}
+
+func TestAwayIconsAndAppName(t *testing.T) {
+	s := &Server{Static: fstest.MapFS{
+		"index.html":                {Data: []byte(`<!doctype html><meta name=apple-mobile-web-app-title content=shelf><title>shelf | Book</title>`)},
+		"apple-touch-icon.png":      {Data: []byte("home-icon")},
+		"away/apple-touch-icon.png": {Data: []byte("away-icon")},
+		"manifest.webmanifest":      {Data: []byte(`{"name":"shelf"}`)},
+		"away/manifest.webmanifest": {Data: []byte(`{"name":"shelf 外"}`)},
+		"favicon.png":               {Data: []byte("home-fav")},
+	}}
+	h := s.static()
+	get := func(url, remote string) string {
+		r := httptest.NewRequest("GET", url, nil)
+		r.RemoteAddr = remote
+		w := httptest.NewRecorder()
+		h.ServeHTTP(w, r)
+		return w.Body.String()
+	}
+	const home, away = "192.168.0.23:1", "100.86.76.76:1"
+
+	if got := get("/apple-touch-icon.png", home); got != "home-icon" {
+		t.Fatalf("home icon: %q", got)
+	}
+	if got := get("/apple-touch-icon.png", away); got != "away-icon" {
+		t.Fatalf("away icon: %q", got)
+	}
+	if got := get("/manifest.webmanifest", away); got != `{"name":"shelf 外"}` {
+		t.Fatalf("away manifest: %q", got)
+	}
+	// The reader chose the home icon explicitly.
+	if got := get("/apple-touch-icon.png?v=home", away); got != "home-icon" {
+		t.Fatalf("explicit home icon: %q", got)
+	}
+	// Files without an away variant fall back to the normal one.
+	if got := get("/favicon.png", away); got != "home-fav" {
+		t.Fatalf("away favicon fallback: %q", got)
+	}
+	// The app name suggested for the home screen differs too.
+	if got := get("/", away); !strings.Contains(got, `content="shelf 外"`) {
+		t.Fatalf("away index: %s", got)
+	}
+	if got := get("/series", home); !strings.Contains(got, `content=shelf>`) {
+		t.Fatalf("home index should be untouched: %s", got)
 	}
 }

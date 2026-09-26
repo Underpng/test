@@ -220,8 +220,21 @@ var hashedAsset = regexp.MustCompile(`\.[0-9a-f]{8}(-[0-9a-f]{6})?\.(js|css|map|
 func (s *Server) static() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		p := strings.TrimPrefix(path.Clean("/"+r.URL.Path), "/")
-		if p == "" {
-			p = "index.html"
+		if p == "" || p == "index.html" {
+			s.serveIndex(w, r)
+			return
+		}
+		// Readers away from home get their own icons and app name, so the
+		// home-screen shortcut added over Tailscale looks different from
+		// the one added on the home Wi-Fi.
+		// An explicit ?v=home (the reader picked the home icon) wins.
+		if remoteClient(r) && r.URL.Query().Get("v") != "home" && !strings.HasPrefix(p, awayDir+"/") {
+			if f, err := s.Static.Open(awayDir + "/" + p); err == nil {
+				f.Close()
+				w.Header().Set("Cache-Control", "public, max-age=3600")
+				http.ServeFileFS(w, r, s.Static, awayDir+"/"+p)
+				return
+			}
 		}
 		if f, err := s.Static.Open(p); err == nil {
 			f.Close()
@@ -239,9 +252,31 @@ func (s *Server) static() http.Handler {
 			http.NotFound(w, r)
 			return
 		}
-		w.Header().Set("Cache-Control", "no-cache")
-		http.ServeFileFS(w, r, s.Static, "index.html")
+		s.serveIndex(w, r)
 	})
+}
+
+// awayDir holds the icon and manifest variants for readers away from home.
+const awayDir = "away"
+
+var appTitleMeta = regexp.MustCompile(`<meta\s+name=["']?apple-mobile-web-app-title["']?\s+content=(?:"[^"]*"|'[^']*'|[^\s>]+)\s*/?>`)
+
+// serveIndex sends the app shell. For readers away from home the default
+// home-screen name becomes "shelf 外".
+func (s *Server) serveIndex(w http.ResponseWriter, r *http.Request) {
+	html, err := fs.ReadFile(s.Static, "index.html")
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	if remoteClient(r) {
+		html = appTitleMeta.ReplaceAll(html, []byte(`<meta name="apple-mobile-web-app-title" content="shelf 外">`))
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-cache")
+	if r.Method != http.MethodHead {
+		w.Write(html)
+	}
 }
 
 func setStaticCache(w http.ResponseWriter, p string) {

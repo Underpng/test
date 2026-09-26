@@ -1,7 +1,7 @@
-import { useState } from "react";
 import { NavLink } from "react-router-dom";
-import { Home, Layers, LibraryBig, Monitor, Moon, Search, Sun } from "lucide-react";
-import { getThemeSetting, setThemeSetting, type ThemeSetting } from "@/lib/theme";
+import { Home, Layers, LibraryBig, Search } from "lucide-react";
+import { SettingsButton } from "@/components/settings-sheet";
+import { iconUrl, useAppIcon } from "@/lib/appicon";
 
 const items = [
     { to: "/", label: "ホーム", icon: Home, end: true },
@@ -34,27 +34,18 @@ function Item({ to, label, icon: Icon, end, vertical }: (typeof items)[number] &
     );
 }
 
-const themeCycle: ThemeSetting[] = ["system", "light", "dark"];
-const themeLabel: Record<ThemeSetting, string> = { system: "テーマ: OS に合わせる", light: "テーマ: ライト", dark: "テーマ: ダーク" };
-
-export function ThemeToggle({ className = "" }: { className?: string }) {
-    const [setting, setSetting] = useState<ThemeSetting>(getThemeSetting);
-    const Icon = setting === "light" ? Sun : setting === "dark" ? Moon : Monitor;
-    const next = () => {
-        const n = themeCycle[(themeCycle.indexOf(setting) + 1) % themeCycle.length];
-        setThemeSetting(n);
-        setSetting(n);
-    };
+// The app mark follows the chosen (or automatic) mascot icon.
+function Logo({ className }: { className: string }) {
+    const { variant } = useAppIcon();
     return (
-        <button
-            type="button"
-            onClick={next}
-            title={themeLabel[setting]}
-            aria-label={themeLabel[setting]}
-            className={`flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground hover:bg-surface-high ${className}`}
-        >
-            <Icon size={20} />
-        </button>
+        <img
+            key={variant}
+            src={iconUrl(variant, "favicon.png")}
+            alt="shelf"
+            data-testid="app-logo"
+            data-variant={variant}
+            className={`animate-in fade-in zoom-in-90 duration-300 motion-reduce:animate-none ${className}`}
+        />
     );
 }
 
@@ -80,16 +71,16 @@ export function NavRail() {
             aria-label="メインナビゲーション"
             className="fixed inset-y-0 left-0 z-40 hidden w-20 flex-col items-center gap-1 bg-surface-low pb-4 pt-5 md:flex"
         >
-            <img src="/favicon.png" alt="shelf" className="mb-4 h-11 w-11 rounded-2xl shadow-sm" />
+            <Logo className="mb-4 h-11 w-11 rounded-2xl shadow-sm" />
             {items.map((it) => (
                 <Item key={it.to} {...it} vertical={true} />
             ))}
-            <ThemeToggle className="mt-auto" />
+            <SettingsButton className="mt-auto" />
         </nav>
     );
 }
 
-// Phone: slim top bar with the app mark and theme toggle.
+// Phone: slim top bar with the app mark and the settings button.
 export function TopBar() {
     return (
         <header
@@ -97,10 +88,10 @@ export function TopBar() {
             style={{ paddingTop: "env(safe-area-inset-top)", height: "calc(3.5rem + env(safe-area-inset-top))" }}
         >
             <div className="flex items-center gap-2 font-semibold">
-                <img src="/favicon.png" alt="" className="h-7 w-7 rounded-lg" />
+                <Logo className="h-7 w-7 rounded-lg" />
                 shelf
             </div>
-            <ThemeToggle />
+            <SettingsButton />
         </header>
     );
 }

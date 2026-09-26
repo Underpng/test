@@ -1,0 +1,28 @@
+{
+  "name": "shelf 外",
+  "short_name": "shelf 外",
+  "description": "家の外から読むときの shelf（通信量を節約）",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#170F0B",
+  "theme_color": "#CC4A0B",
+  "lang": "ja",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
