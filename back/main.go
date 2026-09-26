@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"shelf/api"
+	"shelf/internal/auth"
 	"shelf/internal/cover"
 	"shelf/internal/db"
 	"shelf/internal/library"
@@ -47,6 +48,8 @@ type config struct {
 	saverHeight  int
 	saverQuality int
 	saverCacheMB int
+	publicURL    string
+	openAdmin    bool
 }
 
 func envOr(key, def string) string {
@@ -110,6 +113,8 @@ func loadConfig() config {
 	flag.IntVar(&c.saverHeight, "saver-height", envInt("SAVER_HEIGHT", 1200), "data saver: page height in pixels")
 	flag.IntVar(&c.saverQuality, "saver-quality", envInt("SAVER_QUALITY", 70), "data saver: JPEG quality")
 	flag.IntVar(&c.saverCacheMB, "saver-cache-mb", envInt("SAVER_CACHE_MB", 2048), "data saver: disk cache budget in MB")
+	flag.StringVar(&c.publicURL, "public-url", envOr("PUBLIC_URL", ""), "public address of this server (Tailscale Funnel, Cloudflare Tunnel...) used in pairing QR codes")
+	flag.BoolVar(&c.openAdmin, "open-admin", envBool("OPEN_ADMIN", true), "open the admin page in a browser on the very first start")
 	flag.StringVar(&c.logFile, "log", envOr("LOG_FILE", ""), "log file path ('-' for console only); default data/server.log")
 	showVersion := flag.Bool("version", false, "print the version and exit")
 	flag.Parse()
@@ -249,17 +254,34 @@ func main() {
 		}
 	}
 
+	authStore, err := auth.Open(filepath.Join(c.dataDir, "auth.json"))
+	if err != nil {
+		logger.Fatalf("auth: %v", err)
+	}
+	firstRun := authStore.FirstRun()
+	if firstRun {
+		// Create the file now so the first-run steps happen only once.
+		authStore.SetLANNoLogin(true)
+	}
+	var lanURLs []string
+	for _, ip := range lanAddresses() {
+		lanURLs = append(lanURLs, fmt.Sprintf("http://%s:%d", ip, c.port))
+	}
+
 	srv := &api.Server{
-		Lib:      lib,
-		DB:       database,
-		Scanner:  scanner,
-		CoverDir: coverDir,
-		PageSize: c.pageSize,
-		SevenZip: sevenZip,
-		Saver:    pageSaver,
-		Static:   web.Dist(),
-		Version:  version,
-		Log:      logger,
+		Lib:       lib,
+		DB:        database,
+		Scanner:   scanner,
+		CoverDir:  coverDir,
+		PageSize:  c.pageSize,
+		SevenZip:  sevenZip,
+		Saver:     pageSaver,
+		Auth:      authStore,
+		PublicURL: c.publicURL,
+		LANURLs:   lanURLs,
+		Static:    web.Dist(),
+		Version:   version,
+		Log:       logger,
 	}
 
 	logger.Printf("shelf %s  books=%s  data=%s  7z=%q  pdftoppm=%q", version, lib.BooksDir, c.dataDir, sevenZip, pdfToPpm)
@@ -290,6 +312,14 @@ func main() {
 		for _, ip := range lanAddresses() {
 			logger.Printf("  LAN: http://%s:%d", ip, c.port)
 		}
+		adminURL := fmt.Sprintf("http://localhost:%d/admin", c.port)
+		logger.Printf("admin (this PC only): %s", adminURL)
+		if firstRun && c.openAdmin {
+			go func() {
+				time.Sleep(700 * time.Millisecond)
+				openBrowser(adminURL)
+			}()
+		}
 		if err := httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			logger.Fatalf("server: %v", err)
 		}
@@ -300,4 +330,18 @@ func main() {
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	httpServer.Shutdown(shutdownCtx)
+}
+
+// openBrowser shows url in the default browser (first-run setup).
+func openBrowser(url string) {
+	var cmd *exec.Cmd
+	switch runtime.GOOS {
+	case "windows":
+		cmd = exec.Command("rundll32", "url.dll,FileProtocolHandler", url)
+	case "darwin":
+		cmd = exec.Command("open", url)
+	default:
+		cmd = exec.Command("xdg-open", url)
+	}
+	_ = cmd.Start()
 }

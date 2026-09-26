@@ -1,5 +1,8 @@
 import { useState } from "react";
-import { Check, Monitor, Moon, Settings, Sun } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Check, LogOut, Monitor, Moon, Settings, Shield, Sun } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { postJSON, refreshAuth, useAuth } from "@/lib/auth";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { getThemeSetting, setThemeSetting, type ThemeSetting } from "@/lib/theme";
 import { iconUrl, setIconSetting, useAppIcon, type IconSetting } from "@/lib/appicon";
@@ -56,6 +59,8 @@ export function SettingsButton({ className = "" }: { className?: string }) {
     const [theme, setTheme] = useState<ThemeSetting>(getThemeSetting);
     const [quality, setQuality] = useState<Quality>(() => loadOptions().quality);
     const icon = useAppIcon();
+    const { status: auth } = useAuth();
+    const [open, setOpen] = useState(false);
 
     const changeQuality = (q: Quality) => {
         setQuality(q);
@@ -64,7 +69,7 @@ export function SettingsButton({ className = "" }: { className?: string }) {
     };
 
     return (
-        <Sheet>
+        <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
                 <button
                     type="button"
@@ -138,6 +143,40 @@ export function SettingsButton({ className = "" }: { className?: string }) {
                             自動モードに設定すると、LAN内/Wi-Fi接続では元画像を読み込むクオリティモード、リモート接続では通信量を約半分に抑えるセーブモードになります。
                         </p>
                     </section>
+
+                    {auth?.enabled && (
+                        <section className="space-y-2" data-testid="settings-login">
+                            <h3 className="text-sm font-medium">ログイン</h3>
+                            {auth.device ? (
+                                <div className="flex items-center justify-between gap-3 rounded-2xl bg-surface-high px-4 py-3">
+                                    <span className="min-w-0 truncate text-sm">この端末: {auth.device.name}</span>
+                                    <Button
+                                        variant="ghost"
+                                        onClick={async () => {
+                                            await postJSON("/api/auth/logout", {});
+                                            setOpen(false);
+                                            await refreshAuth();
+                                        }}
+                                    >
+                                        <LogOut size={16} />
+                                        ログアウト
+                                    </Button>
+                                </div>
+                            ) : (
+                                <p className="text-xs leading-relaxed text-muted-foreground">
+                                    {auth.admin ? "サーバーの PC から使っています。" : "LAN内/Wi-Fi接続なので、ログインなしで使っています。"}
+                                </p>
+                            )}
+                            {auth.admin && (
+                                <Button asChild variant="secondary" className="w-full">
+                                    <Link to="/admin" onClick={() => setOpen(false)}>
+                                        <Shield size={16} />
+                                        管理画面（スマホのログイン、パスワード）
+                                    </Link>
+                                </Button>
+                            )}
+                        </section>
+                    )}
                 </div>
             </SheetContent>
         </Sheet>

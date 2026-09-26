@@ -23,6 +23,7 @@ test.describe("comic viewer", () => {
 
 		await page.goto(`/viewer/cbz?title=${encodeURIComponent(book!.title)}&path=${encodeURIComponent(book!.path)}&position=1`);
 		await expect(page.locator("img").first()).toBeVisible({ timeout: 20_000 });
+		await expect(page.getByTestId("page-indicator")).toHaveText(/\/ \d+$/, { timeout: 20_000 });
 		const indicator = page.getByTestId("page-indicator");
 		await expect(indicator).toHaveText(/^1 \/ \d+$/);
 
@@ -47,6 +48,7 @@ test.describe("comic viewer", () => {
 
 		await page.goto(`/viewer/cbz?title=${encodeURIComponent(book!.title)}&path=${encodeURIComponent(book!.path)}&position=1`);
 		await expect(page.locator("img").first()).toBeVisible({ timeout: 20_000 });
+		await expect(page.getByTestId("page-indicator")).toHaveText(/\/ \d+$/, { timeout: 20_000 });
 		const indicator = page.getByTestId("page-indicator");
 
 		await page.keyboard.press("Space");

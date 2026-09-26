@@ -12,6 +12,7 @@ async function pageCount(page: Page, path: string): Promise<number> {
 async function openComic(page: Page, path: string, position: number) {
 	await page.goto(`/viewer/cbz?title=x&path=${encodeURIComponent(path)}&position=${position}`);
 	await expect(page.locator("img").first()).toBeVisible({ timeout: 20_000 });
+	await expect(page.getByTestId("page-indicator")).toHaveText(/\/ \d+$/, { timeout: 20_000 });
 }
 
 test.describe("end-of-book card", () => {
@@ -79,7 +80,14 @@ test.describe("viewer settings sheet", () => {
 			await page.goto(url);
 			const indicator = page.getByTestId("page-indicator");
 			await expect(indicator).toBeVisible({ timeout: 20_000 });
-			if (kind === "epub") await expect(page.frameLocator("iframe").first().getByRole("heading", { name: "第1章" })).toBeVisible({ timeout: 20_000 });
+			if (kind === "epub") {
+				await expect(page.frameLocator("iframe").first().getByRole("heading", { name: "第1章" })).toBeVisible({ timeout: 20_000 });
+				// The EPUB indicator switches from chapters to a percentage once
+				// the book has been measured; compare only after that.
+				await expect(indicator).toHaveText(/%$/, { timeout: 20_000 });
+			} else {
+				await expect(indicator).toHaveText(/\/ \d+$/, { timeout: 20_000 });
+			}
 			const before = await indicator.textContent();
 
 			await page.getByRole("button", { name: "表示設定" }).click();

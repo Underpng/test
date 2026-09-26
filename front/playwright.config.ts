@@ -26,7 +26,7 @@ export default defineConfig({
 	webServer: external
 		? undefined
 		: {
-				command: `node tests/fixtures/make-library.mjs "${join(fixtureDir, "books")}" && "${exe}" -books "${join(fixtureDir, "books")}" -data "${join(fixtureDir, "data")}" -port ${port} -scan-interval 0 -log -`,
+				command: `node tests/fixtures/make-library.mjs "${join(fixtureDir, "books")}" && "${exe}" -books "${join(fixtureDir, "books")}" -data "${join(fixtureDir, "data")}" -port ${port} -scan-interval 0 -open-admin=false -log -`,
 				url: `${baseURL}/api/status`,
 				reuseExistingServer: false,
 				timeout: 60_000,

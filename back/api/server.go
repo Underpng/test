@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 
+	"shelf/internal/auth"
 	"shelf/internal/db"
 	"shelf/internal/library"
 	"shelf/internal/saver"
@@ -25,9 +26,13 @@ type Server struct {
 	PageSize int
 	SevenZip string
 	Saver    *saver.Saver // nil disables data saving
-	Static   fs.FS
-	Version  string
-	Log      *log.Logger
+	Auth     *auth.Store  // nil disables login entirely
+	// Addresses offered in pairing QR codes.
+	PublicURL string   // e.g. https://pc.tailnet.ts.net (Funnel, Cloudflare Tunnel...)
+	LANURLs   []string // e.g. http://192.168.0.115:50080
+	Static    fs.FS
+	Version   string
+	Log       *log.Logger
 }
 
 // Entry is the JSON shape the frontend expects for books and folders.
@@ -76,10 +81,22 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /book/cbr", s.comicPage("cbr"))
 	mux.HandleFunc("GET /api/client", s.client)
 
+	mux.HandleFunc("GET /api/auth/status", s.authStatus)
+	mux.HandleFunc("POST /api/auth/login", s.authLogin)
+	mux.HandleFunc("POST /api/auth/pair", s.authPair)
+	mux.HandleFunc("POST /api/auth/logout", s.authLogout)
+
+	mux.HandleFunc("GET /api/admin/state", s.adminState)
+	mux.HandleFunc("POST /api/admin/pair", s.adminPair)
+	mux.HandleFunc("GET /api/admin/qr", s.adminQR)
+	mux.HandleFunc("POST /api/admin/password", s.adminPassword)
+	mux.HandleFunc("POST /api/admin/lan", s.adminLAN)
+	mux.HandleFunc("DELETE /api/admin/devices/{id}", s.adminRevoke)
+
 	mux.HandleFunc("GET /cover/{path...}", s.cover)
 
 	mux.Handle("/", s.static())
-	return mux
+	return s.guard(mux)
 }
 
 func writeJSON(w http.ResponseWriter, v any) {

@@ -161,9 +161,12 @@ func mustCIDR(s string) *net.IPNet {
 }
 
 // remoteClient reports whether the request comes from outside the home
-// LAN: over Tailscale or from a public address. Loopback and private LAN
-// addresses count as home.
+// LAN: over Tailscale, through a public tunnel, or from a public address.
+// Direct loopback and private LAN addresses count as home.
 func remoteClient(r *http.Request) bool {
+	if proxied(r) {
+		return true
+	}
 	host, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
 		host = r.RemoteAddr

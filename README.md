@@ -35,6 +35,15 @@ powershell -ExecutionPolicy Bypass -File scripts\install-autostart.ps1
 
 解除は `-Remove` を付けて実行。ログは `data\server.log` に出ます。
 
+### ログインと管理画面
+
+- 管理画面 `http://localhost:50080/admin` は、**サーバーを動かしている PC のブラウザからだけ**開けます。初回起動時に自動で開きます。
+- **スマホのログイン**: 管理画面に出る QR コードをスマホのカメラで読むと、その端末がログイン済みになります（QR は 5 分で失効、1 回限り）。ログインは端末ごとに 1 年保持され、管理画面の端末一覧から個別にログアウトできます。
+- **パスワード（任意）**: 外出先で新しい端末からログインするとき用です。管理画面で設定・変更・削除できます。忘れたら管理画面で設定し直してください。保存されるのはハッシュだけです。
+- **ログインが必要な接続**: 公開 URL（Tailscale Funnel、Cloudflare Tunnel など）を通ってきた接続だけです。LAN内/Wi-Fi接続と Tailscale、この PC 自身からはログイン不要（管理画面で変更可。PC 自身は常にログイン不要）。
+- 公開 URL を QR コードに載せるには `-public-url https://...` を指定します。
+- 自前のリバースプロキシ（nginx など）で公開する場合は、必ず `X-Forwarded-For` を付けてください。付けないと外からの接続が「この PC から」に見え、ログインも管理画面の制限も効きません。
+
 ### 家の外から読む（Tailscale）
 
 [Tailscale](https://tailscale.com/) を使うと、自分の端末同士だけを暗号化してつなげます。ポート開放は不要で、他人からは届きません（このサーバーにはログイン機能が無いので、ルーターのポート開放やトンネルでネットに公開するのはやめてください）。
@@ -69,6 +78,8 @@ powershell -ExecutionPolicy Bypass -File scripts\install-autostart.ps1
 | `-saver-height` | `SAVER_HEIGHT` | 1200 | 節約モードのページの高さ(px) |
 | `-saver-quality` | `SAVER_QUALITY` | 70 | 節約モードの JPEG 品質 |
 | `-saver-cache-mb` | `SAVER_CACHE_MB` | 2048 | 節約モードの変換キャッシュの上限(MB) |
+| `-public-url` | `PUBLIC_URL` | なし | 公開 URL（ペアリングの QR コードに載せる） |
+| `-open-admin` | `OPEN_ADMIN` | true | 初回起動時に管理画面をブラウザで開く |
 | `-7z` | `SEVENZIP` | 自動検出 | 7-Zip の実行ファイル（CBR 用） |
 | `-log` | `LOG_FILE` | `data\server.log` | ログファイル（`-` でコンソールのみ） |
 
@@ -123,6 +134,8 @@ Playwright は `dist\shelf.exe` を生成したテスト用蔵書（`tests/fixtu
 | `GET /api/access?path=` | 最終アクセスの記録 |
 | `GET /api/rescan` | 再スキャンを開始 |
 | `GET /api/client` | この接続が家の外扱いか（自動画質の判定結果） |
+| `GET /api/auth/status`, `POST /api/auth/login`, `/pair`, `/logout` | ログイン状態、パスワードログイン、QR ペアリング、ログアウト |
+| `/api/admin/*` | 管理画面用（この PC からのみ。変更系は `X-Shelf-Admin: 1` ヘッダー必須） |
 | `GET /api/status` | 冊数、最終スキャン結果 |
 | `GET /book/cbz?path=&page=[&q=saver\|original]` / `/book/cbz/pages` | CBZ のページ画像とページ数（CBR も同様）。`q` を省くと接続元で自動判定。応答ヘッダー `X-Shelf-Quality` に実際の画質 |
 | `GET /book/epub?path=` / `/book/pdf?path=` | ファイルそのもの（Range 対応） |
