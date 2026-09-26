@@ -275,7 +275,7 @@ export function EpubViewer({ path, title, initialCfi }: EpubViewerProps) {
             {error && (
                 <div role="alert" className="absolute inset-0 z-40 flex items-center justify-center bg-black/80 p-6 text-center text-white" onPointerDown={stop}>
                     <div className="flex max-w-sm flex-col items-center">
-                        <img src={illustrations.sleeping} alt="" className="mb-4 w-32 rounded-3xl" />
+                        <img src={illustrations.sleeping} alt="" className="mb-4 w-32 rounded-3xl [image-rendering:pixelated]" />
                         <p className="font-medium">本を開けません</p>
                         <p className="mt-2 text-sm text-neutral-300">{error}</p>
                         <button type="button" onClick={toShelf} className="mt-5 rounded-full bg-white px-5 py-2 text-sm font-medium text-black">

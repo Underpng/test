@@ -1,7 +1,7 @@
-import sleeping from "@/assets/illustrations/sleeping.jpg";
-import empty from "@/assets/illustrations/empty.jpg";
-import searching from "@/assets/illustrations/searching.jpg";
-import cheer from "@/assets/illustrations/cheer.jpg";
+import sleeping from "@/assets/illustrations/sleeping.png";
+import empty from "@/assets/illustrations/empty.png";
+import searching from "@/assets/illustrations/searching.png";
+import cheer from "@/assets/illustrations/cheer.png";
 
 // The shelf's mascot in different moods, used for empty, error and
 // celebration states.

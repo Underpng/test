@@ -605,7 +605,7 @@ export function ComicViewer({ kind, path, title, initialPage = 1 }: ComicViewerP
                     onPointerDown={stop}
                 >
                     <div className="flex max-w-sm flex-col items-center">
-                        <img src={illustrations.sleeping} alt="" className="mb-4 w-32 rounded-3xl" />
+                        <img src={illustrations.sleeping} alt="" className="mb-4 w-32 rounded-3xl [image-rendering:pixelated]" />
                         <p className="font-medium">{loadError ? "本を開けません" : "ページを読み込めません"}</p>
                         <p className="mt-2 text-sm text-neutral-300">{loadError ?? "通信が途切れたか、ファイルが壊れている可能性があります。"}</p>
                         <div className="mt-5 flex justify-center gap-2">
