@@ -8,6 +8,7 @@ import { initTheme } from "./lib/theme";
 import { preloadIllustrations } from "./lib/illustrations";
 import { initAppIcon } from "./lib/appicon";
 import { watchUnauthorized } from "./lib/auth";
+import { initViewportFix } from "./lib/viewport";
 import { AuthGate } from "./components/auth-gate";
 
 import HomePage from "./pages/home";
@@ -26,6 +27,7 @@ initTheme();
 preloadIllustrations();
 initAppIcon();
 watchUnauthorized();
+initViewportFix();
 
 const container = document.querySelector("#root");
 if (!container) {

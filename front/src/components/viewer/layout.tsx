@@ -63,7 +63,7 @@ export function ViewerLayout({
     };
 
     return (
-        <div className="fixed inset-0">
+        <div className="fixed inset-x-0 top-0 bottom-[calc(var(--vgap,0px)*-1)]">
             <button
                 type="button"
                 aria-label="本棚へ戻る"

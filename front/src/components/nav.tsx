@@ -54,7 +54,7 @@ export function BottomNav() {
     return (
         <nav
             aria-label="メインナビゲーション"
-            className="fixed inset-x-0 bottom-0 z-40 flex border-t border-border/60 bg-surface-low md:hidden"
+            className="fixed inset-x-0 bottom-[calc(var(--vgap,0px)*-1)] z-40 flex border-t border-border/60 bg-surface-low md:hidden"
             style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
         >
             {items.map((it) => (

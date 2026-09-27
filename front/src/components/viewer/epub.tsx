@@ -271,7 +271,7 @@ export function EpubViewer({ path, title, initialCfi }: EpubViewerProps) {
     const indicator = hasLocations ? `${Math.round(percent * 100)}%` : chapter.total ? `${chapter.index} / ${chapter.total} 章` : "…";
 
     return (
-        <div className="fixed inset-0 select-none overflow-hidden" style={{ background: pageTheme === "dark" ? "#141414" : "#fbf7f2" }}>
+        <div className="fixed inset-x-0 top-0 bottom-[calc(var(--vgap,0px)*-1)] select-none overflow-hidden" style={{ background: pageTheme === "dark" ? "#141414" : "#fbf7f2" }}>
             <div ref={containerRef} className="absolute inset-0" />
 
             {/* gesture layer above the iframe */}

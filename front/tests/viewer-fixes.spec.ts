@@ -158,3 +158,33 @@ test.describe("bottom bar", () => {
 		await expect(bubble).toHaveCount(0);
 	});
 });
+
+test.describe("iPhone home-screen app", () => {
+	// Fake the iOS standalone quirk: the screen is 47px taller than the
+	// viewport that fixed elements are laid out against.
+	async function fakeStandalone(page: Page) {
+		await page.addInitScript(() => {
+			Object.defineProperty(navigator, "standalone", { get: () => true });
+			Object.defineProperty(screen, "height", { get: () => window.innerHeight + 47 });
+			Object.defineProperty(screen, "width", { get: () => window.innerWidth });
+		});
+	}
+
+	test("the viewer reaches past the short viewport to the real bottom", async ({ page }) => {
+		await fakeStandalone(page);
+		await openComic(page, v01, 1);
+		const gap = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--vgap"));
+		expect(gap.trim()).toBe("47px");
+		const bottom = await page.evaluate(() => {
+			const root = document.querySelector("div.fixed.bg-black") as HTMLElement;
+			return root.getBoundingClientRect().bottom - window.innerHeight;
+		});
+		expect(Math.round(bottom)).toBe(47);
+	});
+
+	test("in a normal browser tab nothing is shifted", async ({ page }) => {
+		await openComic(page, v01, 1);
+		const gap = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--vgap"));
+		expect(gap.trim()).toBe("0px");
+	});
+});

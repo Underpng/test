@@ -549,7 +549,7 @@ export function ComicViewer({ kind, path, title, initialPage = 1 }: ComicViewerP
     return (
         <div
             ref={containerRef}
-            className="fixed inset-0 select-none overflow-hidden bg-black"
+            className="fixed inset-x-0 top-0 bottom-[calc(var(--vgap,0px)*-1)] select-none overflow-hidden bg-black"
             style={{ touchAction: "none" }}
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
