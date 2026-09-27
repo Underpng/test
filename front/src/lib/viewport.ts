@@ -1,11 +1,11 @@
 // iOS home-screen apps with a translucent status bar draw the page from
-// the very top of the screen, but position:fixed elements measure against
-// a viewport that is one status bar shorter. "bottom: 0" then stops a
-// status bar's height above the real bottom edge, leaving a strip of page
-// background. We measure that shortfall and expose it as --vgap so fixed
-// full-screen layers can reach down to the real bottom:
+// the very top of the screen, but position:fixed layers are laid out AND
+// clipped to a viewport one status bar shorter. The band left below them
+// shows only the page canvas, and it already covers the home indicator.
 //
-//   bottom: calc(var(--vgap, 0px) * -1)
+// We measure that shortfall as --vgap. index.css derives --safe-bottom from
+// it (the bottom inset minus the band) for fixed bottom bars, and full-screen
+// layers call paintCanvas() so the band matches their colour.
 //
 // Outside the iOS home-screen app the gap is always 0.
 
@@ -25,6 +25,15 @@ function measure(): number {
 function apply() {
     document.documentElement.style.setProperty("--vgap", `${measure()}px`);
     updateDebug();
+}
+
+// Paint the page canvas (and so the band under the fixed layers) while a
+// full-screen layer is open. Returns the restore function.
+export function paintCanvas(color: string): () => void {
+    const els = [document.documentElement, document.body];
+    const previous = els.map((el) => el.style.backgroundColor);
+    els.forEach((el) => (el.style.backgroundColor = color));
+    return () => els.forEach((el, i) => (el.style.backgroundColor = previous[i]));
 }
 
 export function initViewportFix() {

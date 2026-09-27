@@ -12,6 +12,7 @@ import { ImmersiveButton, PageSlider, VolumeChip, useImmersive } from "./control
 import { BookEntry } from "@/api/interface";
 import { continuePosition, viewerUrl } from "@/lib/viewer-url";
 import { illustrations } from "@/lib/illustrations";
+import { paintCanvas } from "@/lib/viewport";
 
 type EpubViewerProps = {
     path: string;      // API path, e.g. "/Novels/Book 1.epub"
@@ -230,6 +231,9 @@ export function EpubViewer({ path, title, initialCfi }: EpubViewerProps) {
         };
     }, []);
 
+    // The band under the reader (iOS home-screen app) follows the paper colour.
+    useEffect(() => paintCanvas(pageTheme === "dark" ? "#141414" : "#fbf7f2"), [pageTheme]);
+
     // ----- gestures on the overlay -----
     const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
         if (e.pointerType === "mouse" && e.button !== 0) return;
@@ -271,7 +275,7 @@ export function EpubViewer({ path, title, initialCfi }: EpubViewerProps) {
     const indicator = hasLocations ? `${Math.round(percent * 100)}%` : chapter.total ? `${chapter.index} / ${chapter.total} 章` : "…";
 
     return (
-        <div className="fixed inset-x-0 top-0 bottom-[calc(var(--vgap,0px)*-1)] select-none overflow-hidden" style={{ background: pageTheme === "dark" ? "#141414" : "#fbf7f2" }}>
+        <div className="fixed inset-0 select-none overflow-hidden" style={{ background: pageTheme === "dark" ? "#141414" : "#fbf7f2" }}>
             <div ref={containerRef} className="absolute inset-0" />
 
             {/* gesture layer above the iframe */}
@@ -324,7 +328,7 @@ export function EpubViewer({ path, title, initialCfi }: EpubViewerProps) {
                 </Sheet>
             </div>
 
-            <div className={`${barClass(chrome)} bottom-0 bg-black/70 px-4 pt-3`} style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 12px)" }} onPointerDown={stop}>
+            <div className={`${barClass(chrome)} bottom-0 bg-black/70 px-4 pt-3`} style={{ paddingBottom: "calc(var(--safe-bottom) + 12px)" }} onPointerDown={stop}>
                 <PageSlider
                     value={sliderValue}
                     min={0}

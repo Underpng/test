@@ -170,16 +170,21 @@ test.describe("iPhone home-screen app", () => {
 		});
 	}
 
-	test("the viewer reaches past the short viewport to the real bottom", async ({ page }) => {
+	test("the viewer stays inside the short viewport and the band below is painted to match", async ({ page }) => {
 		await fakeStandalone(page);
 		await openComic(page, v01, 1);
-		const gap = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--vgap"));
-		expect(gap.trim()).toBe("47px");
-		const bottom = await page.evaluate(() => {
+		const m = await page.evaluate(() => {
 			const root = document.querySelector("div.fixed.bg-black") as HTMLElement;
-			return root.getBoundingClientRect().bottom - window.innerHeight;
+			return {
+				gap: getComputedStyle(document.documentElement).getPropertyValue("--vgap").trim(),
+				overshoot: Math.round(root.getBoundingClientRect().bottom - window.innerHeight),
+				canvas: getComputedStyle(document.documentElement).backgroundColor,
+			};
 		});
-		expect(Math.round(bottom)).toBe(47);
+		expect(m).toEqual({ gap: "47px", overshoot: 0, canvas: "rgb(0, 0, 0)" });
+		// Leaving the reader gives the page its own background back.
+		await page.goBack();
+		await expect.poll(() => page.evaluate(() => document.documentElement.style.backgroundColor)).toBe("");
 	});
 
 	test("in a normal browser tab nothing is shifted", async ({ page }) => {
