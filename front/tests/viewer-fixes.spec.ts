@@ -182,6 +182,13 @@ test.describe("iPhone home-screen app", () => {
 			};
 		});
 		expect(m).toEqual({ gap: "47px", overshoot: 0, canvas: "rgb(0, 0, 0)" });
+		// The page sits in the middle of the whole screen, band included.
+		const centre = await page.evaluate(() => {
+			const img = document.querySelector("div.fixed.bg-black img") as HTMLImageElement;
+			const r = img.getBoundingClientRect();
+			return Math.round((r.top + r.bottom) / 2 - (window.innerHeight + 47) / 2);
+		});
+		expect(Math.abs(centre)).toBeLessThanOrEqual(1);
 		// Leaving the reader gives the page its own background back.
 		await page.goBack();
 		await expect.poll(() => page.evaluate(() => document.documentElement.style.backgroundColor)).toBe("");

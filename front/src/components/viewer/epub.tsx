@@ -276,7 +276,7 @@ export function EpubViewer({ path, title, initialCfi }: EpubViewerProps) {
 
     return (
         <div className="fixed inset-0 select-none overflow-hidden" style={{ background: pageTheme === "dark" ? "#141414" : "#fbf7f2" }}>
-            <div ref={containerRef} className="absolute inset-0" />
+            <div ref={containerRef} className="absolute inset-x-0 bottom-0 top-[var(--vgap,0px)]" />
 
             {/* gesture layer above the iframe */}
             <div

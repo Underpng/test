@@ -517,7 +517,7 @@ export function ComicViewer({ kind, path, title, initialPage = 1 }: ComicViewerP
     const slot = (pages: number[] | null, offset: number, role: "prev" | "cur" | "next") =>
         pages && (
             <div key={role} className="absolute inset-0" style={{ transform: `translate3d(${offset * 100}%, 0, 0)` }}>
-                <div ref={role === "cur" ? zoomRef : undefined} className="flex h-full w-full items-center justify-center">
+                <div ref={role === "cur" ? zoomRef : undefined} className="flex h-full w-full items-center justify-center" style={{ paddingTop: "var(--vgap, 0px)" }}>
                     {(direction === "rtl" ? [...pages].reverse() : pages).map((p) => (
                         <img
                             key={p}
