@@ -337,11 +337,10 @@ export function ComicViewer({ kind, path, title, initialPage = 1 }: ComicViewerP
         };
     }, []);
 
-    // Keep Safari from zooming the whole page and stop the callout on long press.
+    // Keep Safari from zooming the whole page and stop the callout on long
+    // press. The viewport meta is fixed in index.html: rewriting it here made
+    // the iOS home-screen app re-lay out with a viewport a status bar short.
     useEffect(() => {
-        const meta = document.querySelector<HTMLMetaElement>('meta[name="viewport"]');
-        const previous = meta?.content ?? "";
-        if (meta) meta.content = "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover";
         const el = containerRef.current;
         const block = (e: Event) => e.preventDefault();
         const multiTouch = (e: TouchEvent) => {
@@ -352,7 +351,6 @@ export function ComicViewer({ kind, path, title, initialPage = 1 }: ComicViewerP
         el?.addEventListener("gesturechange", block);
         el?.addEventListener("contextmenu", block);
         return () => {
-            if (meta) meta.content = previous;
             el?.removeEventListener("touchmove", multiTouch);
             el?.removeEventListener("gesturestart", block);
             el?.removeEventListener("gesturechange", block);

@@ -41,10 +41,21 @@ const sheetVariants = cva(
         left: "inset-y-0 left-0 h-full w-3/4 border-r data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left sm:max-w-sm",
         right:
           "inset-y-0 right-0 h-full w-3/4  border-l data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right sm:max-w-sm",
+        // Phone: a bottom sheet within thumb reach, clear of the status bar
+        // and Dynamic Island. Wider screens: a side sheet on the right.
+        auto: [
+          "inset-x-0 bottom-0 max-h-[85%] overflow-y-auto rounded-t-[28px] border-t",
+          "pb-[calc(var(--safe-bottom)+1.5rem)]",
+          "data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom",
+          "md:inset-x-auto md:inset-y-0 md:right-0 md:h-full md:max-h-none md:w-full md:max-w-sm md:rounded-none md:border-l md:border-t-0",
+          "md:pt-[calc(env(safe-area-inset-top)+1.5rem)] md:pb-[calc(env(safe-area-inset-bottom)+1.5rem)]",
+          "md:data-[state=closed]:slide-out-to-bottom-0 md:data-[state=open]:slide-in-from-bottom-0",
+          "md:data-[state=closed]:slide-out-to-right md:data-[state=open]:slide-in-from-right",
+        ].join(" "),
       },
     },
     defaultVariants: {
-      side: "right",
+      side: "auto",
     },
   }
 )
@@ -56,7 +67,7 @@ interface SheetContentProps
 const SheetContent = React.forwardRef<
   React.ElementRef<typeof SheetPrimitive.Content>,
   SheetContentProps
->(({ side = "right", className, children, ...props }, ref) => (
+>(({ side = "auto", className, children, ...props }, ref) => (
   <SheetPortal>
     <SheetOverlay />
     <SheetPrimitive.Content
@@ -65,8 +76,11 @@ const SheetContent = React.forwardRef<
       {...props}
     >
       {children}
-      <SheetPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-secondary">
-        <X className="h-4 w-4" />
+      <SheetPrimitive.Close className={cn(
+        "absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-surface-high focus:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none",
+        side === "auto" && "md:top-[calc(env(safe-area-inset-top)+0.75rem)]"
+      )}>
+        <X className="h-5 w-5" />
         <span className="sr-only">Close</span>
       </SheetPrimitive.Close>
     </SheetPrimitive.Content>

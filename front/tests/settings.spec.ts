@@ -32,3 +32,23 @@ test("theme can be chosen in settings", async ({ page }) => {
 	await page.getByRole("radio", { name: "ライト" }).click();
 	await expect(page.locator("html")).not.toHaveClass(/dark/);
 });
+
+test("settings open from the bottom on phones and from the right on wide screens", async ({ page, isMobile }) => {
+	await page.goto("/");
+	await page.getByRole("button", { name: "設定" }).first().click();
+	const sheet = page.getByRole("dialog");
+	await expect(sheet).toBeVisible();
+	await page.waitForTimeout(600); // let the slide-in finish
+	const box = (await sheet.boundingBox())!;
+	const vp = page.viewportSize()!;
+	if (isMobile) {
+		// Anchored to the bottom edge, full width, clear of the status bar.
+		expect(Math.round(box.y + box.height)).toBe(vp.height);
+		expect(box.width).toBe(vp.width);
+		expect(box.y).toBeGreaterThan(vp.height * 0.1);
+	} else {
+		expect(Math.round(box.x + box.width)).toBe(vp.width);
+		expect(box.y).toBe(0);
+	}
+	await page.screenshot({ path: `test-results/sheet-${isMobile ? "phone" : "wide"}.png` });
+});

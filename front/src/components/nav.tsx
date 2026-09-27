@@ -55,7 +55,7 @@ export function BottomNav() {
         <nav
             aria-label="メインナビゲーション"
             className="fixed inset-x-0 bottom-0 z-40 flex border-t border-border/60 bg-surface-low md:hidden"
-            style={{ paddingBottom: "var(--safe-bottom)" }}
+            style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
         >
             {items.map((it) => (
                 <Item key={it.to} {...it} vertical={false} />
