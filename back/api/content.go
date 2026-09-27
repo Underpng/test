@@ -113,8 +113,7 @@ func (s *Server) comicPage(kind string) http.HandlerFunc {
 		}
 
 		if s.Saver != nil && s.wantSaver(r) {
-			id := bookPath(r) + "|" + strconv.FormatInt(info.ModTime().UnixNano(), 10) + "|" + strconv.FormatInt(info.Size(), 10)
-			src := saver.Source{ID: id, Open: func() (archive.Book, error) { return archive.Open(kind, s.SevenZip, abs) }}
+			src := saver.Source{ID: sourceID(r, info), Open: func() (archive.Book, error) { return archive.Open(kind, s.SevenZip, abs) }}
 			pg, err := s.Saver.Get(src, n, book)
 			if err != nil {
 				s.fail(w, 500, "cannot read page", err)
@@ -135,6 +134,44 @@ func (s *Server) comicPage(kind string) http.HandlerFunc {
 		w.Header().Set("X-Shelf-Quality", "original")
 		servePage(w, r, name, info.ModTime(), data)
 	}
+}
+
+// comicThumb serves a small version of one page for the page grid.
+func (s *Server) comicThumb(kind string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if s.Thumbs == nil {
+			http.Error(w, "thumbnails disabled", 404)
+			return
+		}
+		abs, info, ok := s.resolveBook(w, r)
+		if !ok {
+			return
+		}
+		book, err := archive.Open(kind, s.SevenZip, abs)
+		if err != nil {
+			s.fail(w, 500, "cannot read archive", err)
+			return
+		}
+		defer book.Close()
+		n := pageParam(r)
+		if n < 1 || n > book.Len() {
+			http.Error(w, "invalid page number", 400)
+			return
+		}
+		pg, err := s.Thumbs.Get(saver.Source{ID: sourceID(r, info)}, n, book)
+		if err != nil {
+			s.fail(w, 500, "cannot read page", err)
+			return
+		}
+		w.Header().Set("Content-Type", pg.Mime)
+		w.Header().Set("Cache-Control", pageCache)
+		http.ServeContent(w, r, "", info.ModTime(), bytes.NewReader(pg.Data))
+	}
+}
+
+// sourceID identifies a book file version for the converted-page caches.
+func sourceID(r *http.Request, info os.FileInfo) string {
+	return bookPath(r) + "|" + strconv.FormatInt(info.ModTime().UnixNano(), 10) + "|" + strconv.FormatInt(info.Size(), 10)
 }
 
 // wantSaver decides the page quality: ?q=saver or ?q=original come from
@@ -284,7 +321,7 @@ func (s *Server) serveIndex(w http.ResponseWriter, r *http.Request) {
 
 func setStaticCache(w http.ResponseWriter, p string) {
 	switch {
-	case p == "index.html":
+	case p == "index.html", p == "sw.js":
 		w.Header().Set("Cache-Control", "no-cache")
 	case hashedAsset.MatchString(p):
 		w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")

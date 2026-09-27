@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button"
 import { BookEntry } from "@/api/interface"
 import { viewerUrl } from "@/lib/viewer-url"
 import { Illustration } from "@/components/illustration"
+import { useLibraryChanged } from "@/lib/library"
+import { useOffline } from "@/lib/offline"
 import { illustrations } from "@/lib/illustrations"
 
 type HomeData = {
@@ -80,6 +82,26 @@ function Shelf({ title, books, hint }: { title: string; books: BookEntry[]; hint
 	)
 }
 
+function SavedShelf({ books }: { books: BookEntry[] }) {
+	if (books.length === 0) return null
+	return (
+		<section data-testid="saved-shelf">
+			<div className="mb-3 flex items-baseline gap-3">
+				<h2 className="text-lg font-semibold">この端末に保存</h2>
+				<Link to="/saved" className="ml-auto flex items-center text-sm text-muted-foreground hover:text-foreground">
+					すべて
+					<ChevronRight size={14} />
+				</Link>
+			</div>
+			<Row>
+				{books.map((book, i) => (
+					<BookCard key={book.path} book={book} index={i} />
+				))}
+			</Row>
+		</section>
+	)
+}
+
 function HomeSkeleton() {
 	return (
 		<div className="space-y-8" aria-busy>
@@ -130,6 +152,14 @@ export default function HomePage() {
 		setAttempt((a) => a + 1)
 	}, [])
 
+	// Read / unread changes regroup the rows: reload quietly.
+	useLibraryChanged(useCallback(() => setAttempt((a) => a + 1), []))
+
+	const { saved } = useOffline()
+	const savedBooks = Object.values(saved)
+		.sort((a, b) => b.savedAt - a.savedAt)
+		.map((s) => s.book)
+
 	const empty = data && data.reading.length === 0 && data.next.length === 0 && data.arrivals.length === 0
 	const current = data?.reading[0]
 	const rest = data?.reading.slice(1) ?? []
@@ -138,6 +168,7 @@ export default function HomePage() {
 		<div className="mx-auto max-w-6xl space-y-8 px-4 py-4 md:px-8 md:py-8">
 			<h1 className="text-2xl font-semibold md:text-3xl">ホーム</h1>
 			{error && <ErrorCard detail={error} onRetry={retry} />}
+			{error && savedBooks.length > 0 && <SavedShelf books={savedBooks} />}
 			{!data && !error && <HomeSkeleton />}
 			{data && (
 				<>
@@ -145,6 +176,7 @@ export default function HomePage() {
 					<Shelf title="読みかけ" books={rest} />
 					<Shelf title="次の巻" books={data.next} hint="読み終えた巻の続き" />
 					<Shelf title="新着" books={data.arrivals} />
+					<SavedShelf books={savedBooks} />
 				</>
 			)}
 			{empty && (

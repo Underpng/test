@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import ePub, { type Book, type Rendition } from "epubjs";
-import { ArrowLeft, Moon, Settings2, Sun } from "lucide-react";
-import { Sheet, SheetTrigger } from "@/components/ui/sheet";
+import ePub, { EpubCFI, type Book, type Rendition } from "epubjs";
+import { ArrowLeft, Bookmark as BookmarkIcon, ListOrdered, Moon, Settings2, Sun, Trash2 } from "lucide-react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { useBookmarks } from "@/api/bookmarks";
+import { BookmarkButton } from "./bookmark-button";
 import { ViewerOptionSheet, loadOptions, type ViewerOptions } from "./sheet";
 import { EndOfBook } from "./end-of-book";
 import { sendAccess } from "@/api/access";
@@ -52,6 +54,9 @@ export function EpubViewer({ path, title, initialCfi }: EpubViewerProps) {
     const [hasLocations, setHasLocations] = useState(false);
     const [chapter, setChapter] = useState({ index: 0, total: 0 });
     const [atEdge, setAtEdge] = useState({ start: false, end: false });
+    const [range, setRange] = useState<{ start: string; end: string } | null>(null);
+    const [marksOpen, setMarksOpen] = useState(false);
+    const bookmarks = useBookmarks(path);
 
     const displayTitle = title || decodeURIComponent(path.split("/").pop() ?? "").replace(/\.[^.]+$/, "");
     const fileUrl = `/book/epub?path=${encodeURIComponent(path)}`;
@@ -82,8 +87,9 @@ export function EpubViewer({ path, title, initialCfi }: EpubViewerProps) {
         rendition.themes.select(pageTheme);
         rendition.themes.fontSize(`${options.fontSize}px`);
 
-        rendition.on("relocated", (loc: { start: { cfi: string; index: number; percentage: number }; atStart: boolean; atEnd: boolean }) => {
+        rendition.on("relocated", (loc: { start: { cfi: string; index: number; percentage: number }; end: { cfi: string }; atStart: boolean; atEnd: boolean }) => {
             if (cancelled) return;
+            setRange({ start: loc.start.cfi, end: loc.end?.cfi ?? loc.start.cfi });
             const spineLength = spineCount(book);
             setChapter({ index: loc.start.index + 1, total: spineLength });
             setAtEdge({ start: !!loc.atStart, end: !!loc.atEnd });
@@ -272,6 +278,29 @@ export function EpubViewer({ path, title, initialCfi }: EpubViewerProps) {
     };
     const barClass = (visible: boolean) =>
         `absolute inset-x-0 z-30 text-white transition-[opacity,visibility] duration-200 ${visible ? "visible opacity-100" : "invisible pointer-events-none opacity-0"}`;
+    // A bookmark belongs to the page on screen when its place falls inside it.
+    const cfi = new EpubCFI();
+    const onPage = (pos: string) => {
+        if (!range) return false;
+        try {
+            return cfi.compare(pos, range.start) >= 0 && cfi.compare(pos, range.end) <= 0;
+        } catch {
+            return pos === range.start;
+        }
+    };
+    const markHere = bookmarks.list.find((b) => onPage(b.position));
+    const toggleBookmark = () => {
+        if (markHere) bookmarks.toggle(markHere.position, markHere.label);
+        else if (range) bookmarks.toggle(range.start, hasLocations ? `${Math.round(percent * 100)}%` : `${chapter.index} 章`);
+    };
+    const sortedMarks = [...bookmarks.list].sort((a, b) => {
+        try {
+            return cfi.compare(a.position, b.position);
+        } catch {
+            return a.created - b.created;
+        }
+    });
+
     const indicator = hasLocations ? `${Math.round(percent * 100)}%` : chapter.total ? `${chapter.index} / ${chapter.total} 章` : "…";
 
     return (
@@ -310,6 +339,7 @@ export function EpubViewer({ path, title, initialCfi }: EpubViewerProps) {
                     <ArrowLeft />
                 </button>
                 <div className="min-w-0 flex-1 truncate text-sm">{displayTitle}</div>
+                <BookmarkButton on={!!markHere} onToggle={toggleBookmark} />
                 <button
                     type="button"
                     aria-label={pageTheme === "dark" ? "紙面を明るくする" : "紙面を暗くする"}
@@ -347,7 +377,58 @@ export function EpubViewer({ path, title, initialCfi }: EpubViewerProps) {
                     }}
                 />
                 <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-                    <div />
+                    <div>
+                        <Sheet open={marksOpen} onOpenChange={setMarksOpen}>
+                            <SheetTrigger asChild>
+                                <button
+                                    type="button"
+                                    aria-label="しおり一覧"
+                                    data-testid="open-bookmarks"
+                                    className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10 transition-colors hover:bg-white/20"
+                                >
+                                    <ListOrdered size={20} />
+                                </button>
+                            </SheetTrigger>
+                            <SheetContent>
+                                <SheetHeader>
+                                    <SheetTitle>しおり</SheetTitle>
+                                </SheetHeader>
+                                {sortedMarks.length === 0 ? (
+                                    <p className="py-10 text-center text-sm text-muted-foreground">
+                                        しおりはまだありません。上のしおりボタンで、読んでいるページに挟めます。
+                                    </p>
+                                ) : (
+                                    <ul className="mt-4 divide-y divide-border" data-testid="bookmark-list">
+                                        {sortedMarks.map((b) => (
+                                            <li key={b.position} className="flex items-center gap-2">
+                                                <button
+                                                    type="button"
+                                                    className="flex min-w-0 flex-1 items-center gap-3 py-3 text-left"
+                                                    onClick={() => {
+                                                        setMarksOpen(false);
+                                                        setEdge("none");
+                                                        renditionRef.current?.display(b.position);
+                                                    }}
+                                                >
+                                                    <BookmarkIcon size={18} className="flex-shrink-0 text-primary" />
+                                                    <span className="font-medium tabular-nums">{b.label || "しおり"}</span>
+                                                    <span className="ml-auto text-xs text-muted-foreground">{new Date(b.created * 1000).toLocaleDateString("ja-JP")}</span>
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    aria-label="このしおりを外す"
+                                                    onClick={() => bookmarks.toggle(b.position, b.label)}
+                                                    className="flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground hover:bg-surface-high"
+                                                >
+                                                    <Trash2 size={18} />
+                                                </button>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
+                            </SheetContent>
+                        </Sheet>
+                    </div>
                     <div data-testid="page-indicator" className="text-lg font-semibold tabular-nums">{indicator}</div>
                     <div className="flex items-center justify-end gap-2">
                         {neighbors && neighbors.series && neighbors.total > 1 && <VolumeChip index={neighbors.index} total={neighbors.total} />}

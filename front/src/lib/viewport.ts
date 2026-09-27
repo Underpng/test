@@ -60,6 +60,32 @@ function showDebug() {
     updateDebug();
 }
 
+// isHomeScreenApp: running as an iOS home-screen app.
+export function isHomeScreenApp(): boolean {
+    return !!(navigator as NavigatorStandalone).standalone;
+}
+
+// viewportInfo describes the screen as the page sees it, for the settings
+// sheet: the numbers needed to diagnose home-screen layout problems.
+export function viewportInfo(): string[] {
+    const probe = document.createElement("div");
+    probe.style.cssText =
+        "position:fixed;visibility:hidden;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom) 0";
+    document.body.appendChild(probe);
+    const cs = getComputedStyle(probe);
+    const top = cs.paddingTop;
+    const bottom = cs.paddingBottom;
+    probe.remove();
+    const vv = window.visualViewport;
+    return [
+        `画面: ${screen.width} × ${screen.height}`,
+        `表示領域: ${window.innerWidth} × ${window.innerHeight}`,
+        `実表示: ${vv ? `${Math.round(vv.width)} × ${Math.round(vv.height)}` : "—"}`,
+        `安全領域: 上 ${top} / 下 ${bottom}`,
+        `下の補正: ${document.documentElement.style.getPropertyValue("--vgap") || "0px"}`,
+    ];
+}
+
 function updateDebug() {
     if (!debugEl) return;
     const probe = document.getElementById("vp-probe");

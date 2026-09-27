@@ -24,14 +24,18 @@ export type Spread = "none" | "odd" | "even"
 // home network, data saver over Tailscale or the internet).
 export type Quality = "auto" | "original" | "saver"
 
+// How comic pages advance: turned one by one, or stacked and scrolled.
+export type Layout = "paged" | "vertical"
+
 export type ViewerOptions = {
+    layout: Layout
     direction: Direction
     spread: SpreadSetting
     fontSize: number
     quality: Quality
 }
 
-const defaults: ViewerOptions = { direction: "rtl", spread: "auto", fontSize: 16, quality: "auto" }
+const defaults: ViewerOptions = { layout: "paged", direction: "rtl", spread: "auto", fontSize: 16, quality: "auto" }
 
 // loadOptions reads the saved reader options, filling gaps with defaults.
 export function loadOptions(): ViewerOptions {
@@ -40,6 +44,7 @@ export function loadOptions(): ViewerOptions {
         if (!saved) return defaults
         const parsed = JSON.parse(saved) as Partial<ViewerOptions>
         return {
+            layout: parsed.layout === "vertical" ? "vertical" : "paged",
             direction: parsed.direction === "ltr" ? "ltr" : "rtl",
             spread: (["auto", "none", "odd", "even"] as const).includes(parsed.spread as SpreadSetting)
                 ? (parsed.spread as SpreadSetting)
@@ -106,6 +111,19 @@ export function ViewerOptionSheet({ onOptionChanged }: ViewerOptionSheetProps) {
                         checked={options.direction === "rtl"}
                         onCheckedChange={(v) => update({ direction: v ? "rtl" : "ltr" })}
                     />
+                </div>
+
+                <div className="grid gap-3">
+                    <Label htmlFor="layout-select">めくり方（漫画）</Label>
+                    <Select value={options.layout} onValueChange={(v) => update({ layout: v as Layout })}>
+                        <SelectTrigger id="layout-select">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="paged">ページめくり</SelectItem>
+                            <SelectItem value="vertical">縦スクロール</SelectItem>
+                        </SelectContent>
+                    </Select>
                 </div>
 
                 <div className="grid gap-3">

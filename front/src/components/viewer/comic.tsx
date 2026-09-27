@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Settings2 } from "lucide-react";
+import { ArrowLeft, LayoutGrid, Settings2 } from "lucide-react";
 import { Sheet, SheetTrigger } from "@/components/ui/sheet";
 import { ViewerOptionSheet, loadOptions, qualityParam, resolveSpread, type Spread, type ViewerOptions } from "./sheet";
 import { EndOfBook } from "./end-of-book";
@@ -13,6 +13,10 @@ import { useWindowSize } from "@/hooks/windowSize";
 import { continuePosition, viewerUrl } from "@/lib/viewer-url";
 import { illustrations } from "@/lib/illustrations";
 import { paintCanvas } from "@/lib/viewport";
+import { useBookmarks } from "@/api/bookmarks";
+import { BookmarkButton } from "./bookmark-button";
+import { PageGrid } from "./page-grid";
+import { VerticalPages, type VerticalHandle } from "./vertical";
 
 export type ComicKind = "cbz" | "cbr";
 
@@ -89,8 +93,13 @@ export function ComicViewer({ kind, path, title, initialPage = 1 }: ComicViewerP
     const [pageError, setPageError] = useState(false);
     const [reload, setReload] = useState(0);
 
+    const [gridOpen, setGridOpen] = useState(false);
+    const bookmarks = useBookmarks(path);
+    const verticalRef = useRef<VerticalHandle>(null);
+
+    const vertical = options.layout === "vertical";
     const direction = options.direction;
-    const spread = resolveSpread(options.spread, landscape);
+    const spread = vertical ? "none" : resolveSpread(options.spread, landscape);
     const dirSign = direction === "ltr" ? 1 : -1;   // +1: next page comes from the right
 
     const total = numPages ?? Math.max(page, 1);
@@ -222,6 +231,7 @@ export function ComicViewer({ kind, path, title, initialPage = 1 }: ComicViewerP
             setSliderValue([p]);
             scheduleProgress(p);
             resetZoom();
+            verticalRef.current?.jump(p);
         },
         [numPages, scheduleProgress],
     );
@@ -264,6 +274,7 @@ export function ComicViewer({ kind, path, title, initialPage = 1 }: ComicViewerP
             return;
         }
         if (nextStart === null) return finish();
+        if (vertical) return goTo(nextStart);
         animateTurn(-dirSign * winW, () => goTo(nextStart));
     };
 
@@ -278,10 +289,29 @@ export function ComicViewer({ kind, path, title, initialPage = 1 }: ComicViewerP
             if (neighbors && !neighbors.series) return;
             return setEdge("start");
         }
+        if (vertical) return goTo(prevStart);
         animateTurn(dirSign * winW, () => goTo(prevStart));
     };
 
+    // Vertical scrolling reports the page under the reading line.
+    const onVerticalPage = useCallback(
+        (p: number) => {
+            setPage(p);
+            setSliderValue([p]);
+            scheduleProgress(p);
+        },
+        [scheduleProgress],
+    );
+    const finishRef = useRef(finish);
+    finishRef.current = finish;
+    const onVerticalEnd = useCallback(() => finishRef.current(), []);
+
+    const bookmarkLabel = view.length === 2 ? `${start}-${last} ページ` : `${start} ページ`;
+    const toggleBookmark = () => bookmarks.toggle(String(start), bookmarkLabel);
+
     // Keyboard, with the latest handlers.
+    const gridOpenRef = useRef(gridOpen);
+    gridOpenRef.current = gridOpen;
     const handlers = useRef({ next, prev });
     handlers.current = { next, prev };
     useEffect(() => {
@@ -304,6 +334,7 @@ export function ComicViewer({ kind, path, title, initialPage = 1 }: ComicViewerP
                     h.prev();
                     break;
                 case "Escape":
+                    if (gridOpenRef.current) break; // the grid closes itself
                     setChrome((c) => !c);
                     break;
             }
@@ -499,7 +530,7 @@ export function ComicViewer({ kind, path, title, initialPage = 1 }: ComicViewerP
 
     // ----- rendering -----
     const prefetch: number[] = [];
-    if (numPages !== null) {
+    if (numPages !== null && !vertical) {
         for (let p = start - 2; p < start; p++) if (p >= 1) prefetch.push(p);
         for (let p = last + 1; p <= last + 3 && p <= numPages; p++) prefetch.push(p);
     }
@@ -551,18 +582,34 @@ export function ComicViewer({ kind, path, title, initialPage = 1 }: ComicViewerP
         <div
             ref={containerRef}
             className="fixed inset-0 select-none overflow-hidden bg-black"
-            style={{ touchAction: "none" }}
-            onPointerDown={onPointerDown}
-            onPointerMove={onPointerMove}
-            onPointerUp={(e) => endPointer(e, false)}
-            onPointerCancel={(e) => endPointer(e, true)}
+            style={{ touchAction: vertical ? "pan-y" : "none" }}
+            onPointerDown={vertical ? undefined : onPointerDown}
+            onPointerMove={vertical ? undefined : onPointerMove}
+            onPointerUp={vertical ? undefined : (e) => endPointer(e, false)}
+            onPointerCancel={vertical ? undefined : (e) => endPointer(e, true)}
             data-zoomed={zoomed ? "true" : undefined}
+            data-layout={vertical ? "vertical" : "paged"}
         >
-            <div ref={trackRef} className="absolute inset-0 will-change-transform">
-                {slot(prevView, -dirSign, "prev")}
-                {slot(view, 0, "cur")}
-                {slot(nextView, dirSign, "next")}
-            </div>
+            {vertical ? (
+                numPages !== null && (
+                    <VerticalPages
+                        ref={verticalRef}
+                        numPages={numPages}
+                        initialPage={Math.min(page, numPages)}
+                        pageUrl={pageUrl}
+                        onPage={onVerticalPage}
+                        onTap={() => setChrome((c) => !c)}
+                        onEnd={onVerticalEnd}
+                        onError={() => setPageError(true)}
+                    />
+                )
+            ) : (
+                <div ref={trackRef} className="absolute inset-0 will-change-transform">
+                    {slot(prevView, -dirSign, "prev")}
+                    {slot(view, 0, "cur")}
+                    {slot(nextView, dirSign, "next")}
+                </div>
+            )}
 
             <div style={{ position: "absolute", width: 0, height: 0, overflow: "hidden" }} aria-hidden>
                 {prefetch.map((p) => (
@@ -581,6 +628,7 @@ export function ComicViewer({ kind, path, title, initialPage = 1 }: ComicViewerP
                     <ArrowLeft />
                 </button>
                 <div className="min-w-0 flex-1 truncate text-sm">{displayTitle}</div>
+                <BookmarkButton on={bookmarks.has(String(start))} onToggle={toggleBookmark} />
                 <Sheet>
                     <SheetTrigger asChild>
                         <button type="button" aria-label="表示設定" className="p-3">
@@ -609,7 +657,19 @@ export function ComicViewer({ kind, path, title, initialPage = 1 }: ComicViewerP
                     onValueCommit={(v) => v.length > 0 && goTo(viewStart(v[0], spread))}
                 />
                 <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-                    <div />
+                    <div>
+                        {numPages !== null && (
+                            <button
+                                type="button"
+                                aria-label="ページ一覧"
+                                data-testid="open-page-grid"
+                                onClick={() => setGridOpen(true)}
+                                className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10 transition-colors hover:bg-white/20"
+                            >
+                                <LayoutGrid size={20} />
+                            </button>
+                        )}
+                    </div>
                     <div data-testid="page-indicator" className="tabular-nums">
                         <span className="text-lg font-semibold">{view.length === 2 ? `${start}-${last}` : start}</span>
                         <span className="text-sm text-neutral-400"> / {numPages ?? "…"}</span>
@@ -620,6 +680,23 @@ export function ComicViewer({ kind, path, title, initialPage = 1 }: ComicViewerP
                     </div>
                 </div>
             </div>
+
+            {gridOpen && numPages !== null && (
+                <PageGrid
+                    kind={kind}
+                    path={path}
+                    numPages={numPages}
+                    current={view}
+                    bookmarks={bookmarks.list}
+                    direction={direction}
+                    onPick={(n) => {
+                        setGridOpen(false);
+                        setEdge("none");
+                        goTo(viewStart(n, spread));
+                    }}
+                    onClose={() => setGridOpen(false)}
+                />
+            )}
 
             {(loadError || pageError) && (
                 <div

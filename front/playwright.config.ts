@@ -22,6 +22,9 @@ export default defineConfig({
 	use: {
 		baseURL,
 		trace: "retain-on-failure",
+		// A service worker answers requests before page.route() sees them;
+		// the offline tests switch it back on for themselves.
+		serviceWorkers: "block",
 	},
 	webServer: external
 		? undefined

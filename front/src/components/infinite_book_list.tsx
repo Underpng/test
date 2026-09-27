@@ -35,27 +35,30 @@ export function InfiniteBookList({ apiEndpoint, sortKey, sortOrder, q, onSeries 
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
-    // A request in flight is tracked in a ref, not as an effect dependency:
-    // the sentinel scrolling into view must never cancel a running request
-    // (that used to leave the list stuck empty and "loading").
-    const loading = useRef(false)
+    // The highest page already requested, tracked in a ref rather than as an
+    // effect dependency: the sentinel scrolling into view must never cancel a
+    // running request (that used to leave the list stuck empty). It is not
+    // cleared when a response arrives: the sentinel's own update can render
+    // before the response's, and asking for the same page again added every
+    // book twice.
+    const requested = useRef(0)
     // Bumped on retry and unmount so late responses are ignored. (React's
-    // development double-mount also passes through here; clearing the
-    // loading flag lets the second mount start its own request.)
+    // development double-mount also passes through here; resetting lets the
+    // second mount start its own request.)
     const generation = useRef(0)
     useEffect(() => () => {
         generation.current++
-        loading.current = false
+        requested.current = 0
     }, [])
 
     const { ref, inView } = useInView({ rootMargin: "400px 0px" })
 
     useEffect(() => {
-        if (!hasMore || error || loading.current) return
+        if (!hasMore || error || requested.current >= page) return
         if (page > 1 && !inView) return
 
         const gen = generation.current
-        loading.current = true
+        requested.current = page
         setIsLoading(true)
         fetch(`${apiEndpoint}?sort=${sortKey}&order=${sortOrder}&page=${page}&q=${q ?? ""}`)
             .then((res) => {
@@ -71,11 +74,12 @@ export function InfiniteBookList({ apiEndpoint, sortKey, sortOrder, q, onSeries 
             })
             .catch((e) => {
                 console.error(e)
-                if (gen === generation.current) setError(describeError(e))
+                if (gen !== generation.current) return
+                requested.current = page - 1
+                setError(describeError(e))
             })
             .finally(() => {
                 if (gen !== generation.current) return
-                loading.current = false
                 setIsLoading(false)
             })
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -83,7 +87,7 @@ export function InfiniteBookList({ apiEndpoint, sortKey, sortOrder, q, onSeries 
 
     const retry = useCallback(() => {
         generation.current++
-        loading.current = false
+        requested.current = 0
         setBooks([])
         setHasMore(true)
         setIsLoading(false)

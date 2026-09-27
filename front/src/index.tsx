@@ -9,6 +9,8 @@ import { preloadIllustrations } from "./lib/illustrations";
 import { initAppIcon } from "./lib/appicon";
 import { watchUnauthorized } from "./lib/auth";
 import { initViewportFix } from "./lib/viewport";
+import { registerServiceWorker } from "./lib/offline";
+import { initProgressSync } from "./api/progress";
 import { AuthGate } from "./components/auth-gate";
 
 import HomePage from "./pages/home";
@@ -17,6 +19,7 @@ import SeriesPage from "./pages/series";
 import RootPage from "./pages/root";
 import NotFoundPage from "./pages/not-found";
 import AdminPage from "./pages/admin";
+import SavedPage from "./pages/saved";
 import PairPage from "./pages/pair";
 import { PDFViewerPage } from "./pages/viewer/pdf";
 import { EPUBViewerPage } from "./pages/viewer/epub";
@@ -28,6 +31,8 @@ preloadIllustrations();
 initAppIcon();
 watchUnauthorized();
 initViewportFix();
+registerServiceWorker();
+initProgressSync();
 
 const container = document.querySelector("#root");
 if (!container) {
@@ -56,6 +61,7 @@ root.render(
 						<Route path="series" element={<SeriesPage />} />
 						<Route path="search" element={<SearchPage />} />
 						<Route path="admin" element={<AdminPage />} />
+						<Route path="saved" element={<SavedPage />} />
 						<Route path="*" element={<NotFoundPage />} />
 					</Route>
 					<Route path="/viewer/pdf" element={<PDFViewerPage />} />

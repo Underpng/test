@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { KeyRound, QrCode } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ErrorCard } from "@/components/error-card";
-import { guessDeviceName, postJSON, refreshAuth, useAuth } from "@/lib/auth";
+import { guessDeviceName, hadAccess, postJSON, refreshAuth, useAuth } from "@/lib/auth";
 
 // Shows the login screen until this device may read the library.
 export function AuthGate({ children }: { children: React.ReactNode }) {
@@ -13,6 +13,9 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     }, []);
 
     if (!status) {
+        // Offline on a device that was let in before: go ahead, saved books
+        // still open and the pages show their own connection errors.
+        if (error && hadAccess()) return <>{children}</>;
         if (error) return <div className="mx-auto max-w-md p-6"><ErrorCard detail="サーバーに接続できません。" onRetry={() => refreshAuth()} /></div>;
         return null;
     }

@@ -177,4 +177,7 @@ writeFileSync(join(out, "テスト漫画", "Test Comic v02.cbz"), cbz(4, [200, 2
 writeFileSync(join(out, "テスト小説", "Test Novel 01.epub"), epub("Test Novel 01", [1, 2, 3]));
 writeFileSync(join(out, "テスト小説", "Test Novel 02.epub"), epub("Test Novel 02", [1, 2]));
 writeFileSync(join(out, "Loose Comic.cbz"), cbz(3, [220, 235, 200]));
+// Only the read-state tests touch this one, so nothing races them.
+mkdirSync(join(out, "既読テスト"), { recursive: true });
+writeFileSync(join(out, "既読テスト", "Mark Me.cbz"), cbz(2, [210, 210, 230]));
 console.log("fixture library written to", out);

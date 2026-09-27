@@ -1,8 +1,13 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { BookEntry } from "@/api/interface";
-import { BookOpen, Folder, Layers } from "lucide-react";
+import { BookOpen, CircleCheck, Folder, Layers, MoreVertical } from "lucide-react";
 import { Link } from "react-router-dom";
 import { viewerUrl } from "@/lib/viewer-url";
+import { useBookActions } from "@/components/book-actions";
+import { useOverride, withOverride } from "@/lib/library";
+import { useOffline } from "@/lib/offline";
+
+const LONG_PRESS_MS = 500;
 
 interface BookCardProps {
     book: BookEntry;
@@ -12,8 +17,35 @@ interface BookCardProps {
     index?: number;
 }
 
-export function BookCard({ book, layout = "shelf", index = 0 }: BookCardProps) {
+export function BookCard({ book: base, layout = "shelf", index = 0 }: BookCardProps) {
+    const book = withOverride(base, useOverride(base.path));
     const [loaded, setLoaded] = useState(false);
+    const actions = useBookActions();
+    const saved = useOffline().saved[book.path]?.complete;
+    const hasActions = book.type !== "Folder";
+
+    // Long press (or right click) opens the book's actions instead.
+    const press = useRef<{ timer: number; x: number; y: number } | null>(null);
+    const suppressClick = useRef(false);
+    const cancelPress = () => {
+        if (press.current) window.clearTimeout(press.current.timer);
+        press.current = null;
+    };
+    const onPointerDown = (e: React.PointerEvent) => {
+        if (!hasActions || (e.pointerType === "mouse" && e.button !== 0)) return;
+        suppressClick.current = false;
+        const timer = window.setTimeout(() => {
+            press.current = null;
+            suppressClick.current = true;
+            navigator.vibrate?.(10);
+            actions.open(book);
+        }, LONG_PRESS_MS);
+        press.current = { timer, x: e.clientX, y: e.clientY };
+    };
+    const onPointerMove = (e: React.PointerEvent) => {
+        const p = press.current;
+        if (p && Math.hypot(e.clientX - p.x, e.clientY - p.y) > 10) cancelPress();
+    };
     const isFolder = book.type === "Folder";
     const isSeries = book.type === "Series";
     const stacked = isFolder || isSeries;
@@ -33,7 +65,24 @@ export function BookCard({ book, layout = "shelf", index = 0 }: BookCardProps) {
     return (
         <Link
             to={viewerUrl(book)}
-            className={`group block flex-shrink-0 animate-in fade-in slide-in-from-bottom-2 fill-mode-backwards duration-300 motion-reduce:animate-none ${width}`}
+            onPointerDown={onPointerDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={cancelPress}
+            onPointerCancel={cancelPress}
+            onClick={(e) => {
+                if (suppressClick.current) {
+                    e.preventDefault();
+                    suppressClick.current = false;
+                }
+            }}
+            onContextMenu={(e) => {
+                if (!hasActions) return;
+                e.preventDefault();
+                cancelPress();
+                actions.open(book);
+            }}
+            draggable={false}
+            className={`group block flex-shrink-0 select-none [-webkit-touch-callout:none] animate-in fade-in slide-in-from-bottom-2 fill-mode-backwards duration-300 motion-reduce:animate-none ${width}`}
             style={stagger}
             title={book.title}
         >
@@ -69,6 +118,31 @@ export function BookCard({ book, layout = "shelf", index = 0 }: BookCardProps) {
                         <span className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-black/55 px-2 py-0.5 text-[11px] text-white backdrop-blur-sm">
                             <Layers size={12} />
                             {book.count ?? 0} 巻
+                        </span>
+                    )}
+                    {hasActions && (
+                        <button
+                            type="button"
+                            aria-label="メニュー"
+                            data-testid="book-menu"
+                            onPointerDown={(e) => e.stopPropagation()}
+                            onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                actions.open(book);
+                            }}
+                            className="absolute right-1 top-1 flex h-8 w-8 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-sm transition-opacity hover:bg-black/60 md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100"
+                        >
+                            <MoreVertical size={16} />
+                        </button>
+                    )}
+                    {saved && (
+                        <span
+                            title="この端末に保存済み"
+                            data-testid="saved-badge"
+                            className="absolute bottom-2 left-2 flex h-6 w-6 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-sm"
+                        >
+                            <CircleCheck size={14} />
                         </span>
                     )}
                     {pct > 0 && !isFolder && (

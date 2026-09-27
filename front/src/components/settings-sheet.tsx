@@ -1,12 +1,51 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Check, LogOut, Monitor, Moon, Settings, Shield, Sun } from "lucide-react";
+import { Check, ChevronRight, CloudDownload, LogOut, Monitor, Moon, Settings, Shield, Smartphone, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { postJSON, refreshAuth, useAuth } from "@/lib/auth";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { getThemeSetting, setThemeSetting, type ThemeSetting } from "@/lib/theme";
 import { iconUrl, setIconSetting, useAppIcon, type IconSetting } from "@/lib/appicon";
 import { loadOptions, type Quality } from "@/components/viewer/sheet";
+import { useOffline } from "@/lib/offline";
+import { isHomeScreenApp, viewportInfo } from "@/lib/viewport";
+
+function SavedLink({ onNavigate }: { onNavigate: () => void }) {
+    const { saved } = useOffline();
+    const n = Object.keys(saved).length;
+    return (
+        <section className="space-y-2">
+            <h3 className="text-sm font-medium">オフライン</h3>
+            <Link
+                to="/saved"
+                onClick={onNavigate}
+                className="flex items-center gap-3 rounded-2xl bg-surface-high px-4 py-3 text-sm transition-colors hover:bg-surface-highest"
+            >
+                <CloudDownload size={18} className="text-primary" />
+                <span className="flex-1">この端末に保存した本</span>
+                <span className="text-muted-foreground tabular-nums">{n > 0 ? `${n} 冊` : "なし"}</span>
+                <ChevronRight size={16} className="text-muted-foreground" />
+            </Link>
+        </section>
+    );
+}
+
+// Numbers for diagnosing layout problems in the iOS home-screen app.
+function ScreenInfo() {
+    const [lines] = useState(viewportInfo);
+    return (
+        <section className="space-y-2" data-testid="screen-info">
+            <h3 className="flex items-center gap-2 text-sm font-medium">
+                <Smartphone size={16} />
+                画面の情報
+            </h3>
+            <pre className="whitespace-pre-wrap rounded-2xl bg-surface-high px-4 py-3 font-mono text-xs leading-relaxed text-muted-foreground">
+                {lines.join("\n")}
+            </pre>
+            <p className="text-xs text-muted-foreground">表示がずれるときは、この画面のスクリーンショットを送ってください。</p>
+        </section>
+    );
+}
 
 function Choice<T extends string>({
     value,
@@ -143,6 +182,10 @@ export function SettingsButton({ className = "" }: { className?: string }) {
                             自動モードに設定すると、LAN内/Wi-Fi接続では元画像を読み込むクオリティモード、リモート接続では通信量を約半分に抑えるセーブモードになります。
                         </p>
                     </section>
+
+                    <SavedLink onNavigate={() => setOpen(false)} />
+
+                    {(isHomeScreenApp() || new URLSearchParams(location.search).has("vpdebug")) && <ScreenInfo />}
 
                     {auth?.enabled && (
                         <section className="space-y-2" data-testid="settings-login">

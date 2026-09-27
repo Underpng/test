@@ -7,3 +7,5 @@ require (
 	golang.org/x/image v0.29.0
 	rsc.io/qr v0.2.0
 )
+
+require golang.org/x/text v0.27.0

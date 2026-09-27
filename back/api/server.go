@@ -26,13 +26,17 @@ type Server struct {
 	PageSize int
 	SevenZip string
 	Saver    *saver.Saver // nil disables data saving
+	Thumbs   *saver.Saver // small page images for the page grid; nil disables
 	Auth     *auth.Store  // nil disables login entirely
 	// Addresses offered in pairing QR codes.
 	PublicURL string   // e.g. https://pc.tailnet.ts.net (Funnel, Cloudflare Tunnel...)
 	LANURLs   []string // e.g. http://192.168.0.115:50080
-	Static    fs.FS
-	Version   string
-	Log       *log.Logger
+	// TailscaleHTTPS finds the Tailscale Serve https address, if any (it
+	// asks the tailscale CLI, so it is only called for the admin page).
+	TailscaleHTTPS func() string
+	Static         fs.FS
+	Version        string
+	Log            *log.Logger
 }
 
 // Entry is the JSON shape the frontend expects for books and folders.
@@ -68,6 +72,9 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/root/{path...}", s.root)
 	mux.HandleFunc("GET /api/search", s.search)
 	mux.HandleFunc("GET /api/progress", s.progress)
+	mux.HandleFunc("POST /api/mark", s.mark)
+	mux.HandleFunc("GET /api/bookmarks", s.bookmarks)
+	mux.HandleFunc("POST /api/bookmarks", s.setBookmark)
 	mux.HandleFunc("GET /api/access", s.access)
 	mux.HandleFunc("GET /api/neighbors", s.neighbors)
 	mux.HandleFunc("/api/rescan", s.rescan)
@@ -76,8 +83,10 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /book/epub", s.wholeFile("application/epub+zip"))
 	mux.HandleFunc("GET /book/pdf", s.wholeFile("application/pdf"))
 	mux.HandleFunc("GET /book/cbz/pages", s.comicPages("cbz"))
+	mux.HandleFunc("GET /book/cbz/thumb", s.comicThumb("cbz"))
 	mux.HandleFunc("GET /book/cbz", s.comicPage("cbz"))
 	mux.HandleFunc("GET /book/cbr/pages", s.comicPages("cbr"))
+	mux.HandleFunc("GET /book/cbr/thumb", s.comicThumb("cbr"))
 	mux.HandleFunc("GET /book/cbr", s.comicPage("cbr"))
 	mux.HandleFunc("GET /api/client", s.client)
 
@@ -243,7 +252,7 @@ func (s *Server) search(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, map[string]any{"books": []Entry{}, "hasMore": false})
 		return
 	}
-	books, err := s.DB.SearchTitle(title, paths, p.orderBy, p.limit, p.offset)
+	books, err := s.DB.Search(title, paths, p.orderBy, p.limit, p.offset)
 	if err != nil {
 		s.fail(w, 500, "db query failed", err)
 		return

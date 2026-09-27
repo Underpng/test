@@ -35,7 +35,7 @@ export default function SearchPage() {
 						type="search"
 						value={text}
 						onChange={(e) => setText(e.target.value)}
-						placeholder="タイトルの先頭、または #著者名"
+						placeholder="タイトル・シリーズ名、または #著者名"
 						autoFocus
 						enterKeyHint="search"
 						className="min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground"
@@ -66,7 +66,7 @@ export default function SearchPage() {
 				/>
 			) : (
 				<p className="py-12 text-center text-sm text-muted-foreground">
-					タイトルの先頭文字で探せます。EPUB や PDF は「#著者名」「#タグ」でも検索できます。
+					タイトルやシリーズ名の一部で探せます。ひらがな・カタカナ、全角・半角は区別しません。EPUB や PDF は「#著者名」「#タグ」でも検索できます。
 				</p>
 			)}
 		</div>

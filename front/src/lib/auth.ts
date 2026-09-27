@@ -17,11 +17,31 @@ function emit(next: State) {
     listeners.forEach((l) => l());
 }
 
+// A device that was let in before may open the app offline, to read the
+// books saved on it.
+const ACCESS_KEY = "hadAccess";
+function rememberAccess(ok: boolean) {
+    try {
+        if (ok) localStorage.setItem(ACCESS_KEY, "1");
+        else localStorage.removeItem(ACCESS_KEY);
+    } catch {
+        /* ignore */
+    }
+}
+export function hadAccess(): boolean {
+    try {
+        return localStorage.getItem(ACCESS_KEY) === "1";
+    } catch {
+        return false;
+    }
+}
+
 export async function refreshAuth(): Promise<AuthStatus | null> {
     try {
         const res = await fetch("/api/auth/status", { cache: "no-store" });
         if (!res.ok) throw new Error(String(res.status));
         const s = (await res.json()) as AuthStatus;
+        rememberAccess(!s.enabled || s.authenticated);
         emit({ status: s, error: false });
         return s;
     } catch {

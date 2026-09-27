@@ -29,6 +29,7 @@ import (
 	"shelf/internal/library"
 	"shelf/internal/saver"
 	"shelf/internal/scan"
+	"shelf/internal/tailscale"
 	"shelf/web"
 )
 
@@ -237,6 +238,21 @@ func main() {
 		PdfInfo:  pdfInfo,
 		Log:      logger,
 	}
+	// Small page images for the page grid: converted one at a time, cached
+	// on disk, never warmed ahead.
+	thumbSaver, err := saver.New(saver.Options{
+		Dir:        filepath.Join(c.dataDir, "thumbs"),
+		MaxHeight:  400,
+		Quality:    60,
+		MaxBytes:   256 << 20,
+		Foreground: 1,
+		Log:        logger,
+	})
+	if err != nil {
+		logger.Printf("page thumbnails disabled: %v", err)
+		thumbSaver = nil
+	}
+
 	var pageSaver *saver.Saver
 	if c.saver {
 		pageSaver, err = saver.New(saver.Options{
@@ -269,19 +285,21 @@ func main() {
 	}
 
 	srv := &api.Server{
-		Lib:       lib,
-		DB:        database,
-		Scanner:   scanner,
-		CoverDir:  coverDir,
-		PageSize:  c.pageSize,
-		SevenZip:  sevenZip,
-		Saver:     pageSaver,
-		Auth:      authStore,
-		PublicURL: c.publicURL,
-		LANURLs:   lanURLs,
-		Static:    web.Dist(),
-		Version:   version,
-		Log:       logger,
+		Lib:            lib,
+		DB:             database,
+		Scanner:        scanner,
+		CoverDir:       coverDir,
+		PageSize:       c.pageSize,
+		SevenZip:       sevenZip,
+		Saver:          pageSaver,
+		Thumbs:         thumbSaver,
+		Auth:           authStore,
+		PublicURL:      c.publicURL,
+		LANURLs:        lanURLs,
+		TailscaleHTTPS: func() string { return tailscale.HTTPSURL(c.port) },
+		Static:         web.Dist(),
+		Version:        version,
+		Log:            logger,
 	}
 
 	logger.Printf("shelf %s  books=%s  data=%s  7z=%q  pdftoppm=%q", version, lib.BooksDir, c.dataDir, sevenZip, pdfToPpm)

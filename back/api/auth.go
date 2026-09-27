@@ -267,6 +267,11 @@ func (s *Server) baseURLs() []link {
 	if s.PublicURL != "" {
 		out = append(out, link{Label: "公開 URL（家の外からも使える）", URL: strings.TrimRight(s.PublicURL, "/")})
 	}
+	if s.TailscaleHTTPS != nil {
+		if u := s.TailscaleHTTPS(); u != "" && u != strings.TrimRight(s.PublicURL, "/") {
+			out = append(out, link{Label: "Tailscale の https（端末への保存が使える）", URL: u})
+		}
+	}
 	for _, a := range s.LANURLs {
 		out = append(out, link{Label: "LAN内/Wi-Fi", URL: a})
 	}
