@@ -16,8 +16,17 @@ export default function SearchPage() {
 		return () => window.clearTimeout(t)
 	}, [text])
 
+	// On phones the empty page keeps the controls near the middle of the
+	// screen, within thumb reach; once something is typed they glide up to
+	// make room for the results.
+	const idle = text === ""
+
 	return (
-		<div className="mx-auto max-w-6xl space-y-5 px-4 py-4 md:px-8 md:py-8">
+		<div
+			data-testid="search-page"
+			data-idle={idle}
+			className={`mx-auto max-w-6xl space-y-5 px-4 py-4 transition-[padding] duration-300 ease-out motion-reduce:transition-none md:px-8 md:py-8 ${idle ? "pt-[24svh]" : ""}`}
+		>
 			<h1 className="text-2xl font-semibold md:text-3xl">検索</h1>
 			<div className="flex flex-wrap items-center gap-3">
 				<label className="flex h-12 min-w-0 flex-1 items-center gap-3 rounded-full bg-surface-high px-4 focus-within:ring-2 focus-within:ring-ring">
