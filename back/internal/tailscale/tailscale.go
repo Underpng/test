@@ -25,12 +25,19 @@ func cli() string {
 	return ""
 }
 
+// Installed reports whether the tailscale CLI is on this PC.
+func Installed() bool { return cli() != "" }
+
 func run(args ...string) ([]byte, error) {
+	return runFor(3*time.Second, args...)
+}
+
+func runFor(limit time.Duration, args ...string) ([]byte, error) {
 	bin := cli()
 	if bin == "" {
 		return nil, exec.ErrNotFound
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), limit)
 	defer cancel()
 	cmd := exec.CommandContext(ctx, bin, args...)
 	hideWindow(cmd)

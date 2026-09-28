@@ -11,6 +11,7 @@ import (
 	"log"
 	"net/http"
 	"net/http/httptest"
+	"net/netip"
 	"os"
 	"path/filepath"
 	"strings"
@@ -210,5 +211,39 @@ func TestAwayIconsAndAppName(t *testing.T) {
 	}
 	if got := get("/series", home); !strings.Contains(got, `content=shelf>`) {
 		t.Fatalf("home index should be untouched: %s", got)
+	}
+}
+
+type fakeHome string
+
+func (h fakeHome) Contains(ip netip.Addr) bool { return ip.String() == string(h) }
+
+func TestFunnelReaderAtHomeGetsHomeTreatment(t *testing.T) {
+	s, _ := testServer(t)
+	s.Home = fakeHome("14.10.40.129")
+	req := func(xff string, funnel bool) *http.Request {
+		r := httptest.NewRequest("GET", "/api/client", nil)
+		r.RemoteAddr = "127.0.0.1:5000" // tailscaled
+		r.Header.Set("X-Forwarded-For", xff)
+		if funnel {
+			r.Header.Set("Tailscale-Funnel-Request", "?1")
+		}
+		return r
+	}
+	if s.remote(req("14.10.40.129", true)) {
+		t.Error("Funnel from the home address should count as home")
+	}
+	if !s.remote(req("203.0.113.9", true)) {
+		t.Error("Funnel from elsewhere should count as away")
+	}
+	if !s.remote(req("14.10.40.129", false)) {
+		t.Error("a non-Funnel proxy must not use the home hint")
+	}
+	if !s.remote(req("14.10.40.129, 203.0.113.9", true)) {
+		t.Error("a forwarded chain must not use the home hint")
+	}
+	// Being "home" never skips the login.
+	if trustedNetwork(req("14.10.40.129", true)) {
+		t.Error("the home hint must not grant access")
 	}
 }

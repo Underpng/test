@@ -55,6 +55,8 @@ powershell -ExecutionPolicy Bypass -File scripts\install-autostart.ps1
 3. スマホでそのアドレスを開き、ログイン画面の「QR コードを読み取る」で PC の管理画面の QR コードを映すとログインできます。ホーム画面に追加したアプリの中からも同じ方法でログインできます。
 4. 公開をやめるときは `tailscale funnel --https=443 off` を実行します。
 
+このアドレスは家の中でも外でも使えます。スマホの公開 IP が PC の公開 IP と同じ（IPv6 は同じ /64）なら家にいると判断し、元画像と「おうち」アイコンにします。PC の公開 IP は `tailscale netcheck` で 15 分おきに裏で確かめます。この判定は画質とアイコンにだけ使い、ログインの要否には使いません（公開 IPv4 はほかの家庭と共有されていることがあるため）。
+
 **スマホにも Tailscale を入れる場合**
 
 PC と iPhone の両方に Tailscale を入れて同じアカウントでログインすれば、Funnel なしで `https://<PC の名前>.<tailnet>.ts.net`（PC で `tailscale serve --bg 50080`）または `http://<PC の名前>:50080` が開けます。自分の Tailscale の端末からならログインは不要です。iPhone では VPN は同時に 1 つしか使えません。

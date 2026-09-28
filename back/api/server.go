@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"log"
 	"net/http"
+	"net/netip"
 	"net/url"
 	"runtime"
 	"strconv"
@@ -35,9 +36,12 @@ type Server struct {
 	// Tailscale finds the Tailscale Serve / Funnel https address, if any (it
 	// asks the tailscale CLI, so it is only called for the admin page).
 	Tailscale func() tailscale.Address
-	Static    fs.FS
-	Version   string
-	Log       *log.Logger
+	// Home recognises this PC's public address, so Funnel readers at home
+	// get home treatment (quality, icon). Nil: every Funnel reader is away.
+	Home    interface{ Contains(netip.Addr) bool }
+	Static  fs.FS
+	Version string
+	Log     *log.Logger
 }
 
 // Entry is the JSON shape the frontend expects for books and folders.

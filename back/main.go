@@ -11,6 +11,7 @@ import (
 	"mime"
 	"net"
 	"net/http"
+	"net/netip"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -253,6 +254,15 @@ func main() {
 		thumbSaver = nil
 	}
 
+	// This PC's public address, for telling Funnel readers at home from
+	// those away (checked in the background every 15 minutes).
+	// (An interface left nil when Tailscale is missing: a nil *Home inside
+	// a non-nil interface would be called.)
+	var homeIPs interface{ Contains(netip.Addr) bool }
+	if tailscale.Installed() {
+		homeIPs = tailscale.NewHome(15 * time.Minute)
+	}
+
 	var pageSaver *saver.Saver
 	if c.saver {
 		pageSaver, err = saver.New(saver.Options{
@@ -297,6 +307,7 @@ func main() {
 		PublicURL: c.publicURL,
 		LANURLs:   lanURLs,
 		Tailscale: tailscale.Cached(c.port, time.Minute),
+		Home:      homeIPs,
 		Static:    web.Dist(),
 		Version:   version,
 		Log:       logger,

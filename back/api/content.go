@@ -8,6 +8,7 @@ import (
 	"mime"
 	"net"
 	"net/http"
+	"net/netip"
 	"os"
 	"path"
 	"regexp"
@@ -183,7 +184,7 @@ func (s *Server) wantSaver(r *http.Request) bool {
 	case "original":
 		return false
 	}
-	return remoteClient(r)
+	return s.remote(r)
 }
 
 var tailnet4 = mustCIDR("100.64.0.0/10")       // Tailscale (CGNAT range)
@@ -223,9 +224,28 @@ func remoteClient(r *http.Request) bool {
 	return true
 }
 
+// remote: away from home for page quality and the icon. A reader coming in
+// through Funnel from this PC's own public address is on the home network,
+// though the traffic takes the long way round.
+func (s *Server) remote(r *http.Request) bool {
+	return remoteClient(r) && !s.atHome(r)
+}
+
+func (s *Server) atHome(r *http.Request) bool {
+	if s.Home == nil || !proxied(r) || r.Header.Get("Tailscale-Funnel-Request") == "" {
+		return false
+	}
+	xff := r.Header.Values("X-Forwarded-For")
+	if len(xff) != 1 || strings.Contains(xff[0], ",") {
+		return false
+	}
+	ip, err := netip.ParseAddr(strings.TrimSpace(xff[0]))
+	return err == nil && s.Home.Contains(ip)
+}
+
 // client tells the reader which quality "auto" resolves to right now.
 func (s *Server) client(w http.ResponseWriter, r *http.Request) {
-	remote := remoteClient(r)
+	remote := s.remote(r)
 	writeJSON(w, map[string]bool{"remote": remote, "saver": remote && s.Saver != nil})
 }
 
@@ -268,7 +288,7 @@ func (s *Server) static() http.Handler {
 		// home-screen shortcut added over Tailscale looks different from
 		// the one added on the home Wi-Fi.
 		// An explicit ?v=home (the reader picked the home icon) wins.
-		if remoteClient(r) && r.URL.Query().Get("v") != "home" && !strings.HasPrefix(p, awayDir+"/") {
+		if s.remote(r) && r.URL.Query().Get("v") != "home" && !strings.HasPrefix(p, awayDir+"/") {
 			if f, err := s.Static.Open(awayDir + "/" + p); err == nil {
 				f.Close()
 				w.Header().Set("Cache-Control", "public, max-age=3600")
@@ -309,7 +329,7 @@ func (s *Server) serveIndex(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	if remoteClient(r) {
+	if s.remote(r) {
 		html = appTitleMeta.ReplaceAll(html, []byte(`<meta name="apple-mobile-web-app-title" content="shelf 外">`))
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
