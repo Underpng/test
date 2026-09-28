@@ -115,3 +115,41 @@ test("the Tailscale https address (Tailscale Serve) needs no login from the tail
 	await expect(p.getByTestId("login-page")).toBeVisible();
 	await funnel.close();
 });
+
+test("the login screen reads the PC's QR code with the camera and logs in", async ({ browser, baseURL, page }, info) => {
+	test.skip(info.project.name !== "chromium", "canvas camera stand-in: Chromium");
+	const res = await page.request.post(baseURL + "/api/admin/pair", { headers: { "X-Shelf-Admin": "1" } });
+	const { links } = (await res.json()) as { links: { url: string }[] };
+	const qr = `${baseURL}/api/admin/qr?text=${encodeURIComponent(links[0].url)}`;
+	const svg = await (await page.request.get(qr)).text();
+
+	// A phone away from home (no Tailscale): the login screen.
+	const phone = await remoteContext(browser, "198.51.100.30");
+	// Stand in for the camera: a video stream showing the QR code.
+	await phone.addInitScript((svgText: string) => {
+		navigator.mediaDevices.getUserMedia = async () => {
+			const canvas = document.createElement("canvas");
+			canvas.width = 480;
+			canvas.height = 480;
+			const ctx = canvas.getContext("2d")!;
+			const img = new Image();
+			img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svgText);
+			await img.decode();
+			const draw = () => {
+				ctx.fillStyle = "#fff";
+				ctx.fillRect(0, 0, 480, 480);
+				ctx.drawImage(img, 60, 60, 360, 360);
+			};
+			draw();
+			setInterval(draw, 100);
+			return canvas.captureStream(10);
+		};
+	}, svg);
+	const p = await phone.newPage();
+	await p.goto(baseURL + "/");
+	await p.getByTestId("scan-qr").click();
+	await expect(p.getByTestId("qr-scanner")).toBeVisible();
+	await expect(p.getByRole("heading", { name: "ホーム" })).toBeVisible({ timeout: 15_000 });
+	await expect(p.getByTestId("qr-scanner")).toBeHidden();
+	await phone.close();
+});

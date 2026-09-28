@@ -285,21 +285,21 @@ func main() {
 	}
 
 	srv := &api.Server{
-		Lib:            lib,
-		DB:             database,
-		Scanner:        scanner,
-		CoverDir:       coverDir,
-		PageSize:       c.pageSize,
-		SevenZip:       sevenZip,
-		Saver:          pageSaver,
-		Thumbs:         thumbSaver,
-		Auth:           authStore,
-		PublicURL:      c.publicURL,
-		LANURLs:        lanURLs,
-		TailscaleHTTPS: tailscale.Cached(c.port, time.Minute),
-		Static:         web.Dist(),
-		Version:        version,
-		Log:            logger,
+		Lib:       lib,
+		DB:        database,
+		Scanner:   scanner,
+		CoverDir:  coverDir,
+		PageSize:  c.pageSize,
+		SevenZip:  sevenZip,
+		Saver:     pageSaver,
+		Thumbs:    thumbSaver,
+		Auth:      authStore,
+		PublicURL: c.publicURL,
+		LANURLs:   lanURLs,
+		Tailscale: tailscale.Cached(c.port, time.Minute),
+		Static:    web.Dist(),
+		Version:   version,
+		Log:       logger,
 	}
 
 	logger.Printf("shelf %s  books=%s  data=%s  7z=%q  pdftoppm=%q", version, lib.BooksDir, c.dataDir, sevenZip, pdfToPpm)

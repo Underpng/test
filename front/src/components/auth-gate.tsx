@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
-import { KeyRound, QrCode } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { Camera, KeyRound, QrCode } from "lucide-react";
+import { QrScanner, cameraAvailable } from "@/components/qr-scanner";
 import { Button } from "@/components/ui/button";
 import { ErrorCard } from "@/components/error-card";
 import { guessDeviceName, hadAccess, postJSON, refreshAuth, useAuth } from "@/lib/auth";
@@ -24,6 +25,22 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
 }
 
 function LoginPage({ passwordSet }: { passwordSet: boolean }) {
+    const [scanning, setScanning] = useState(false);
+    const [scanMessage, setScanMessage] = useState<string | null>(null);
+    const onCode = useCallback(async (code: string) => {
+        setScanning(false);
+        setScanMessage(null);
+        try {
+            const res = await postJSON("/api/auth/pair", { code, name: guessDeviceName() });
+            if (res.ok) {
+                await refreshAuth();
+                return;
+            }
+            setScanMessage("この QR コードは使えません。有効期限（5 分）が切れたか、すでに使われています。PC で新しい QR コードを出してください。");
+        } catch {
+            setScanMessage("サーバーに接続できません。");
+        }
+    }, []);
     const [password, setPassword] = useState("");
     const [busy, setBusy] = useState(false);
     const [message, setMessage] = useState<string | null>(null);
@@ -61,9 +78,21 @@ function LoginPage({ passwordSet }: { passwordSet: boolean }) {
                         QR コードでログイン
                     </h2>
                     <p className="text-sm leading-relaxed text-muted-foreground">
-                        サーバーを動かしている PC で管理画面（http://localhost:50080/admin）を開き、表示される QR コードをこの端末のカメラで読んでください。
+                        サーバーを動かしている PC で管理画面（http://localhost:50080/admin）を開き、表示される QR コードを読み取ってください。
                     </p>
+                    {cameraAvailable() && (
+                        <Button className="mt-2 w-full" onClick={() => setScanning(true)} data-testid="scan-qr">
+                            <Camera size={18} />
+                            QR コードを読み取る
+                        </Button>
+                    )}
+                    {scanMessage && (
+                        <p role="alert" className="text-sm text-destructive">
+                            {scanMessage}
+                        </p>
+                    )}
                 </section>
+                {scanning && <QrScanner onCode={onCode} onClose={() => setScanning(false)} />}
 
                 {passwordSet && (
                     <form onSubmit={submit} className="space-y-3 rounded-3xl bg-surface-low p-5">

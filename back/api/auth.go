@@ -292,9 +292,16 @@ func (s *Server) baseURLs() []link {
 	if s.PublicURL != "" {
 		out = append(out, link{Label: "公開 URL（家の外からも使える）", URL: strings.TrimRight(s.PublicURL, "/")})
 	}
-	if s.TailscaleHTTPS != nil {
-		if u := s.TailscaleHTTPS(); u != "" && u != strings.TrimRight(s.PublicURL, "/") {
-			out = append(out, link{Label: "Tailscale の https（端末への保存が使える）", URL: u})
+	if s.Tailscale != nil {
+		if a := s.Tailscale(); a.URL != "" && a.URL != strings.TrimRight(s.PublicURL, "/") {
+			l := link{Label: "Tailscale の端末から（https）", URL: a.URL}
+			if a.Public {
+				// Funnel: any phone, no Tailscale needed. Offer it first.
+				l.Label = "どこからでも（スマホに Tailscale 不要）"
+				out = append([]link{l}, out...)
+			} else {
+				out = append(out, l)
+			}
 		}
 	}
 	for _, a := range s.LANURLs {

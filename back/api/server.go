@@ -16,6 +16,7 @@ import (
 	"shelf/internal/library"
 	"shelf/internal/saver"
 	"shelf/internal/scan"
+	"shelf/internal/tailscale"
 )
 
 type Server struct {
@@ -31,12 +32,12 @@ type Server struct {
 	// Addresses offered in pairing QR codes.
 	PublicURL string   // e.g. https://pc.tailnet.ts.net (Funnel, Cloudflare Tunnel...)
 	LANURLs   []string // e.g. http://192.168.0.115:50080
-	// TailscaleHTTPS finds the Tailscale Serve https address, if any (it
+	// Tailscale finds the Tailscale Serve / Funnel https address, if any (it
 	// asks the tailscale CLI, so it is only called for the admin page).
-	TailscaleHTTPS func() string
-	Static         fs.FS
-	Version        string
-	Log            *log.Logger
+	Tailscale func() tailscale.Address
+	Static    fs.FS
+	Version   string
+	Log       *log.Logger
 }
 
 // Entry is the JSON shape the frontend expects for books and folders.
