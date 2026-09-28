@@ -7,7 +7,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { getThemeSetting, setThemeSetting, type ThemeSetting } from "@/lib/theme";
 import { iconUrl, setIconSetting, useAppIcon, type IconSetting } from "@/lib/appicon";
 import { loadOptions, type Quality } from "@/components/viewer/sheet";
-import { useOffline } from "@/lib/offline";
+import { offlineSupported, useOffline } from "@/lib/offline";
 import { isHomeScreenApp, viewportInfo } from "@/lib/viewport";
 
 function SavedLink({ onNavigate }: { onNavigate: () => void }) {
@@ -23,7 +23,7 @@ function SavedLink({ onNavigate }: { onNavigate: () => void }) {
             >
                 <CloudDownload size={18} className="text-primary" />
                 <span className="flex-1">この端末に保存した本</span>
-                <span className="text-muted-foreground tabular-nums">{n > 0 ? `${n} 冊` : "なし"}</span>
+                <span className="text-muted-foreground tabular-nums">{!offlineSupported() ? "https で使えます" : n > 0 ? `${n} 冊` : "なし"}</span>
                 <ChevronRight size={16} className="text-muted-foreground" />
             </Link>
         </section>

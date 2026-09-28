@@ -67,11 +67,36 @@ func isLocalAdmin(r *http.Request) bool {
 	return ip != nil && ip.IsLoopback() && !proxied(r) && localHost(r.Host)
 }
 
+// viaTailscaleServe: the request came through Tailscale Serve from a device
+// on the user's own tailnet (https://<pc>.<tailnet>.ts.net, tailnet only).
+// tailscaled connects from this PC, names the tailnet user in
+// Tailscale-User-Login (it drops any such header a client sends) and gives
+// the device's tailnet address as the only X-Forwarded-For entry. Funnel
+// (the public internet) is marked with Tailscale-Funnel-Request and is not
+// trusted, nor is anything carrying another proxy's headers.
+func viaTailscaleServe(r *http.Request) bool {
+	ip := remoteIP(r)
+	if ip == nil || !ip.IsLoopback() || r.Header.Get("Tailscale-User-Login") == "" || r.Header.Get("Tailscale-Funnel-Request") != "" {
+		return false
+	}
+	for _, h := range []string{"Forwarded", "X-Real-Ip", "Cf-Connecting-Ip"} {
+		if r.Header.Get(h) != "" {
+			return false
+		}
+	}
+	xff := r.Header.Values("X-Forwarded-For")
+	if len(xff) != 1 || strings.Contains(xff[0], ",") {
+		return false
+	}
+	client := net.ParseIP(strings.TrimSpace(xff[0]))
+	return client != nil && (tailnet4.Contains(client) || tailnet6.Contains(client))
+}
+
 // trustedNetwork: this PC, the home LAN, or the user's Tailscale network,
-// reached directly (not through a public tunnel).
+// reached directly or through Tailscale Serve (not a public tunnel).
 func trustedNetwork(r *http.Request) bool {
 	if proxied(r) {
-		return false
+		return viaTailscaleServe(r)
 	}
 	ip := remoteIP(r)
 	if ip == nil {

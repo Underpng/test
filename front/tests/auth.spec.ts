@@ -36,7 +36,7 @@ test("the admin page on this PC shows a pairing QR code", async ({ page }) => {
 	await expect(page.getByTestId("pair-url")).toContainText("/pair?code=");
 });
 
-test("scanning the QR code logs a phone in, once", async ({ browser, baseURL, page, isMobile }) => {
+test("scanning the QR code logs a phone in, once, with nothing to press", async ({ browser, baseURL, page, isMobile }) => {
 	test.skip(isMobile, "one run is enough for the pairing flow");
 	const res = await page.request.post(baseURL + "/api/admin/pair", { headers: { "X-Shelf-Admin": "1" } });
 	const { code } = (await res.json()) as { code: string };
@@ -44,15 +44,13 @@ test("scanning the QR code logs a phone in, once", async ({ browser, baseURL, pa
 	const phone = await remoteContext(browser, "198.51.100.12");
 	const p = await phone.newPage();
 	await p.goto(`${baseURL}/pair?code=${code}`);
-	await expect(p.getByTestId("pair-page")).toBeVisible();
-	await p.getByRole("button", { name: "ログインする" }).click();
+	await expect(p.getByRole("heading", { name: "ログインしました" })).toBeVisible();
 	await expect(p.getByRole("heading", { name: "ホーム" })).toBeVisible();
 
 	// The same code does not work a second time.
 	const other = await remoteContext(browser, "198.51.100.13");
 	const q = await other.newPage();
 	await q.goto(`${baseURL}/pair?code=${code}`);
-	await q.getByRole("button", { name: "ログインする" }).click();
 	await expect(q.getByText("この QR コードは使えません")).toBeVisible();
 
 	// The device shows up on the admin page and can be logged out there.
@@ -98,4 +96,22 @@ test("this PC and the home network need no login by default", async ({ page }) =
 	await page.getByRole("button", { name: "設定" }).locator("visible=true").first().click();
 	await expect(page.getByTestId("settings-login")).toContainText("サーバーの PC から使っています");
 	await expect(page.getByRole("link", { name: /管理画面/ })).toBeVisible();
+});
+
+test("the Tailscale https address (Tailscale Serve) needs no login from the tailnet", async ({ browser, baseURL }) => {
+	// What tailscaled sends for a device on the tailnet (Funnel adds
+	// Tailscale-Funnel-Request and no user).
+	const ctx = await browser.newContext({
+		extraHTTPHeaders: { "Tailscale-User-Login": "me@example.com", "X-Forwarded-For": "100.86.76.76", "X-Forwarded-Proto": "https" },
+	});
+	const page = await ctx.newPage();
+	await page.goto(baseURL + "/");
+	await expect(page.getByRole("heading", { name: "ホーム" })).toBeVisible();
+	await ctx.close();
+
+	const funnel = await browser.newContext({ extraHTTPHeaders: { "Tailscale-Funnel-Request": "?1", "X-Forwarded-For": "198.51.100.20" } });
+	const p = await funnel.newPage();
+	await p.goto(baseURL + "/");
+	await expect(p.getByTestId("login-page")).toBeVisible();
+	await funnel.close();
 });

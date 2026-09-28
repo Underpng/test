@@ -1,3 +1,4 @@
+import { showBars } from "./bars";
 import { test, expect } from "@playwright/test";
 
 // Test Comic v01 ends with a 900x1800 scan-like page (see fixtures).
@@ -34,11 +35,11 @@ test("pages are original at home and shrunk when data saver is requested", async
 test("the reader settings show what auto quality means right now", async ({ page }) => {
 	await page.goto(`/viewer/cbz?title=x&path=${encodeURIComponent(book)}&position=1`);
 	await expect(page.locator("img").first()).toBeVisible({ timeout: 20_000 });
-	// The bars hide themselves shortly after opening; a centre tap brings them back.
-	await expect(page.getByTestId("page-indicator")).toBeHidden({ timeout: 5_000 });
-	const { width, height } = page.viewportSize()!;
-	await page.mouse.click(width * 0.5, height * 0.5);
-	await page.getByRole("button", { name: "表示設定" }).click();
+	await showBars(page);
+	// showBars made sure the bar is up. Skip the "stable" wait: under load the
+	// headless page sometimes stops running animation frames, and the check
+	// would wait forever for a button that is right there.
+	await page.getByRole("button", { name: "表示設定" }).click({ force: true });
 	await expect(page.getByTestId("quality-now")).toContainText("クオリティモード");
 });
 

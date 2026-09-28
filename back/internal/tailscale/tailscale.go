@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -34,6 +35,24 @@ func run(args ...string) ([]byte, error) {
 	cmd := exec.CommandContext(ctx, bin, args...)
 	hideWindow(cmd)
 	return cmd.Output()
+}
+
+// Cached remembers HTTPSURL(port) for a while: asking the CLI takes a
+// noticeable moment on Windows, and the answer rarely changes.
+func Cached(port int, ttl time.Duration) func() string {
+	var (
+		mu   sync.Mutex
+		val  string
+		when time.Time
+	)
+	return func() string {
+		mu.Lock()
+		defer mu.Unlock()
+		if when.IsZero() || time.Since(when) > ttl {
+			val, when = HTTPSURL(port), time.Now()
+		}
+		return val
+	}
 }
 
 // HTTPSURL returns the Tailscale Serve https address that forwards to the

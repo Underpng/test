@@ -1,3 +1,4 @@
+import { showBars } from "./bars";
 import { test, expect, type Page } from "@playwright/test";
 
 const v01 = "/テスト漫画/Test Comic v01.cbz";
@@ -90,10 +91,16 @@ test.describe("viewer settings sheet", () => {
 			}
 			const before = await indicator.textContent();
 
-			await page.getByRole("button", { name: "表示設定" }).click();
+			await showBars(page);
+			// showBars made sure the bar is up. Skip the "stable" wait: under load the
+			// headless page sometimes stops running animation frames, and the check
+			// would wait forever for a button that is right there.
+			await page.getByRole("button", { name: "表示設定" }).click({ force: true });
 			await expect(page.getByRole("dialog")).toBeVisible();
 			const { width, height } = page.viewportSize()!;
-			await page.mouse.click(width * 0.05, height * 0.5); // left edge, outside the sheet
+			// Near the top left: outside both the phone bottom sheet (at most 85%
+			// of the height) and the side sheet on wide screens.
+			await page.mouse.click(width * 0.05, height * 0.1);
 			await expect(page.getByRole("dialog")).toHaveCount(0);
 			await page.waitForTimeout(400);
 			expect(await indicator.textContent()).toBe(before);

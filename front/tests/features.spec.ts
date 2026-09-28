@@ -1,3 +1,4 @@
+import { showBars } from "./bars";
 import { test, expect, type Page } from "@playwright/test";
 
 // Tests that change the shared library (read state, bookmarks) run in one
@@ -15,14 +16,6 @@ async function openComic(page: Page, path: string, position = 1) {
 	await expect(page.getByTestId("page-indicator")).toHaveText(/\/ \d+$/, { timeout: 20_000 });
 }
 
-async function showBars(page: Page) {
-	const bar = page.getByTestId("page-indicator");
-	if (!(await bar.isVisible())) {
-		const vp = page.viewportSize()!;
-		await page.mouse.click(vp.width / 2, vp.height / 2);
-	}
-	await expect(bar).toBeVisible();
-}
 
 test.describe("search", () => {
 	for (const [q, expected] of [

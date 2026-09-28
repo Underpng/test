@@ -296,7 +296,7 @@ func main() {
 		Auth:           authStore,
 		PublicURL:      c.publicURL,
 		LANURLs:        lanURLs,
-		TailscaleHTTPS: func() string { return tailscale.HTTPSURL(c.port) },
+		TailscaleHTTPS: tailscale.Cached(c.port, time.Minute),
 		Static:         web.Dist(),
 		Version:        version,
 		Log:            logger,

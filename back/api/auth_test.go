@@ -90,6 +90,34 @@ func TestAccessRules(t *testing.T) {
 		t.Errorf("public: %d, want 401", code)
 	}
 
+	// Tailscale Serve (the https address, tailnet only) is the tailnet.
+	serve := map[string]string{"Tailscale-User-Login": "me@example.com", "X-Forwarded-For": "100.86.76.76", "X-Forwarded-Proto": "https"}
+	if code := get(thisPC, "pc.tail1234.ts.net", serve); code != 200 {
+		t.Errorf("tailscale serve from the tailnet: %d, want 200", code)
+	}
+	for name, change := range map[string]map[string]string{
+		"funnel":          {"Tailscale-Funnel-Request": "?1"},
+		"public client":   {"X-Forwarded-For": "203.0.113.9"},
+		"chained proxies": {"X-Forwarded-For": "100.86.76.76, 203.0.113.9"},
+		"other proxy":     {"Cf-Connecting-Ip": "203.0.113.9"},
+		"no user":         {"Tailscale-User-Login": ""},
+	} {
+		h := map[string]string{}
+		for k, v := range serve {
+			h[k] = v
+		}
+		for k, v := range change {
+			h[k] = v
+		}
+		if code := get(thisPC, "pc.tail1234.ts.net", h); code != 401 {
+			t.Errorf("serve-like request, %s: %d, want 401", name, code)
+		}
+	}
+	// Not from this PC at all: the headers mean nothing.
+	if code := get(public, "pc.tail1234.ts.net", serve); code != 401 {
+		t.Errorf("serve headers from outside: %d, want 401", code)
+	}
+
 	// Turning the LAN exemption off requires login on the LAN too, but
 	// never locks this PC out.
 	s.Auth.SetLANNoLogin(false)
