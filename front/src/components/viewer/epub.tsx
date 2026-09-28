@@ -12,7 +12,7 @@ import { sendProgress } from "@/api/progress";
 import { shelfUrl, useNeighbors } from "@/api/neighbors";
 import { ImmersiveButton, PageSlider, VolumeChip, useImmersive } from "./controls";
 import { BookEntry } from "@/api/interface";
-import { continuePosition, viewerUrl } from "@/lib/viewer-url";
+import { LAST_PAGE, continuePosition, viewerUrl } from "@/lib/viewer-url";
 import { illustrations } from "@/lib/illustrations";
 import { paintCanvas } from "@/lib/viewport";
 
@@ -106,7 +106,7 @@ export function EpubViewer({ path, title, initialCfi }: EpubViewerProps) {
         });
 
         book.ready
-            .then(() => rendition.display(initialCfi || undefined))
+            .then(() => (initialCfi === LAST_PAGE ? displayEnd(book, rendition) : rendition.display(initialCfi || undefined)))
             .then(() => {
                 if (cancelled) return;
                 setRtl((book.packaging?.metadata as unknown as { direction?: string } | undefined)?.direction === "rtl");
@@ -159,10 +159,11 @@ export function EpubViewer({ path, title, initialCfi }: EpubViewerProps) {
     };
 
     // ----- navigation -----
+    // backwards: the previous volume, opened at its end.
     const openBook = useCallback(
-        (b: BookEntry) => {
+        (b: BookEntry, backwards = false) => {
             setEdge("none");
-            navigate(viewerUrl(b, continuePosition(b)));
+            navigate(viewerUrl(b, backwards ? LAST_PAGE : continuePosition(b)));
         },
         [navigate],
     );
@@ -179,7 +180,7 @@ export function EpubViewer({ path, title, initialCfi }: EpubViewerProps) {
     };
     const prev = () => {
         if (edge === "end") return setEdge("none");
-        if (edge === "start") return void (neighbors?.prev && openBook(neighbors.prev));
+        if (edge === "start") return void (neighbors?.prev && openBook(neighbors.prev, true));
         if (atEdge.start) {
             if (neighbors && !neighbors.series) return;
             return setEdge("start");
@@ -449,6 +450,19 @@ export function EpubViewer({ path, title, initialCfi }: EpubViewerProps) {
             )}
         </div>
     );
+}
+
+// displayEnd shows the last page of the book: the last spine item, then
+// page forward within it until epubjs reports the end.
+async function displayEnd(book: Book, rendition: Rendition) {
+    const spine = book.spine as unknown as { last?: () => { href: string } | undefined };
+    const last = spine.last?.();
+    await rendition.display(last?.href);
+    for (let i = 0; i < 300; i++) {
+        const loc = rendition.currentLocation() as unknown as { atEnd?: boolean } | undefined;
+        if (!loc || loc.atEnd) break;
+        await rendition.next();
+    }
 }
 
 function spineCount(book: Book): number {

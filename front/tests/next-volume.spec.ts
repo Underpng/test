@@ -84,3 +84,24 @@ test("finishing the last volume celebrates the series", async ({ page }) => {
 	await expect(card.getByText("シリーズ完読！")).toBeVisible();
 	await expect(card.locator("img")).toBeVisible();
 });
+
+test("going back to the previous volume opens it at its last page", async ({ page }) => {
+	const series = await findSeries(page);
+	test.skip(series === null, "needs a folder with two CBZ files");
+	const [first, second] = series!;
+	const { pages } = (await (await page.request.get(`/book/cbz/pages?path=${encodeURIComponent(first.path)}`)).json()) as { pages: number };
+
+	await page.goto(`/viewer/cbz?title=x&path=${encodeURIComponent(second.path)}&position=1`);
+	await expect(page.getByTestId("page-indicator")).toHaveText(/\/ \d+$/, { timeout: 20_000 });
+	await page.keyboard.press("PageUp");
+	await page.getByTestId("end-of-book").getByRole("button", { name: /前の巻を読む/ }).click();
+
+	await expect.poll(() => new URL(page.url()).searchParams.get("path")).toBe(first.path);
+	expect(new URL(page.url()).searchParams.get("position")).toBe("last");
+	// The last page (it stands alone in every spread mode for this fixture).
+	const indicator = page.getByTestId("page-indicator");
+	await expect(indicator).toHaveText(new RegExp("^" + pages + " / " + pages + "$"), { timeout: 20_000 });
+	// Stepping back once more goes to the page before, not the next volume.
+	await page.keyboard.press("PageUp");
+	await expect(indicator).not.toHaveText(new RegExp("^" + pages + " /"));
+});

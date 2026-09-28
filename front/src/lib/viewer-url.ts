@@ -22,6 +22,10 @@ export function viewerUrl(book: BookEntry, position?: string): string {
     }
 }
 
+// LAST_PAGE as a position opens a book at its end: going back from the
+// first page of a volume lands on the last page of the one before.
+export const LAST_PAGE = "last";
+
 // Where to start when continuing into another volume: a finished (or never
 // opened) book starts from the beginning, otherwise resume where it was left.
 export function continuePosition(book: BookEntry): string {

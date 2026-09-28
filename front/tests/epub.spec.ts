@@ -75,3 +75,14 @@ test.describe("epub viewer", () => {
 		await expect.poll(async () => indicator.textContent(), { timeout: 10_000 }).not.toBe(before);
 	});
 });
+
+test("an EPUB opened with position=last starts at its final page", async ({ page }) => {
+	const novel = "/テスト小説/Test Novel 02.epub"; // chapters 1 and 2
+	await page.goto(`/viewer/epub?title=x&path=${encodeURIComponent(novel)}&position=last`);
+	await expect(page.frameLocator("iframe").first().getByRole("heading", { name: "第2章" })).toBeVisible({ timeout: 20_000 });
+	// Already at the end: one step forward shows the end-of-book screen.
+	await expect(async () => {
+		await page.keyboard.press("Space");
+		await expect(page.getByTestId("end-of-book")).toBeVisible({ timeout: 1_000 });
+	}).toPass({ timeout: 5_000 });
+});

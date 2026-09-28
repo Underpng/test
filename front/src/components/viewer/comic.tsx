@@ -10,7 +10,7 @@ import { shelfUrl, useNeighbors } from "@/api/neighbors";
 import { ImmersiveButton, PageSlider, VolumeChip, useImmersive } from "./controls";
 import { BookEntry } from "@/api/interface";
 import { useWindowSize } from "@/hooks/windowSize";
-import { continuePosition, viewerUrl } from "@/lib/viewer-url";
+import { LAST_PAGE, continuePosition, viewerUrl } from "@/lib/viewer-url";
 import { illustrations } from "@/lib/illustrations";
 import { paintCanvas } from "@/lib/viewport";
 import { useBookmarks } from "@/api/bookmarks";
@@ -25,6 +25,7 @@ type ComicViewerProps = {
     path: string;    // API path of the book, e.g. "/Series/Vol 01.cbz"
     title?: string;
     initialPage?: number;
+    startAtEnd?: boolean; // open at the last page (coming back from the next volume)
 };
 
 // Gesture tuning
@@ -73,7 +74,7 @@ const idleGesture: Gesture = { type: "none", startX: 0, startY: 0, startTime: 0,
 
 // Page-image viewer for CBZ / CBR with swipe, tap zones, pinch zoom and
 // next-volume navigation.
-export function ComicViewer({ kind, path, title, initialPage = 1 }: ComicViewerProps) {
+export function ComicViewer({ kind, path, title, initialPage = 1, startAtEnd = false }: ComicViewerProps) {
     const navigate = useNavigate();
     const { width: winW, height: winH } = useWindowSize();
     const landscape = winW > winH;
@@ -112,6 +113,11 @@ export function ComicViewer({ kind, path, title, initialPage = 1 }: ComicViewerP
     const prevStart = atStart ? null : viewStart(start - 1, spread);
     const nextView = nextStart !== null ? viewPages(nextStart, spread, total) : null;
     const prevView = prevStart !== null ? viewPages(prevStart, spread, total) : null;
+
+    const spreadRef = useRef(spread);
+    spreadRef.current = spread;
+    // Opening at the end: show nothing until the page count says where that is.
+    const placed = !startAtEnd || numPages !== null;
 
     const encodedPath = encodeURIComponent(path);
     // `reload` busts the cache after a failed image load.
@@ -190,7 +196,11 @@ export function ComicViewer({ kind, path, title, initialPage = 1 }: ComicViewerP
                 if (cancelled) return;
                 const n = Math.max(1, data.pages ?? 1);
                 setNumPages(n);
-                if (initialPage < 1 || initialPage > n) {
+                if (startAtEnd) {
+                    const last = viewStart(n, spreadRef.current);
+                    setPage(last);
+                    setSliderValue([last]);
+                } else if (initialPage < 1 || initialPage > n) {
                     setPage(1);
                     setSliderValue([1]);
                 }
@@ -202,7 +212,7 @@ export function ComicViewer({ kind, path, title, initialPage = 1 }: ComicViewerP
         return () => {
             cancelled = true;
         };
-    }, [kind, path, encodedPath, initialPage, reload]);
+    }, [kind, path, encodedPath, initialPage, startAtEnd, reload]);
 
     // A failed page image is reported once per page shown.
     useEffect(() => setPageError(false), [page, reload]);
@@ -248,10 +258,11 @@ export function ComicViewer({ kind, path, title, initialPage = 1 }: ComicViewerP
         window.setTimeout(then, TURN_MS);
     };
 
+    // backwards: the previous volume, opened at its last page.
     const openBook = useCallback(
-        (book: BookEntry) => {
+        (book: BookEntry, backwards = false) => {
             setEdge("none");
-            navigate(viewerUrl(book, continuePosition(book)));
+            navigate(viewerUrl(book, backwards ? LAST_PAGE : continuePosition(book)));
         },
         [navigate],
     );
@@ -282,7 +293,7 @@ export function ComicViewer({ kind, path, title, initialPage = 1 }: ComicViewerP
         if (animating.current) return;
         if (edge === "end") return setEdge("none");
         if (edge === "start") {
-            if (neighbors?.prev) openBook(neighbors.prev);
+            if (neighbors?.prev) openBook(neighbors.prev, true);
             return;
         }
         if (prevStart === null) {
@@ -605,9 +616,9 @@ export function ComicViewer({ kind, path, title, initialPage = 1 }: ComicViewerP
                 )
             ) : (
                 <div ref={trackRef} className="absolute inset-0 will-change-transform">
-                    {slot(prevView, -dirSign, "prev")}
-                    {slot(view, 0, "cur")}
-                    {slot(nextView, dirSign, "next")}
+                    {placed && slot(prevView, -dirSign, "prev")}
+                    {placed && slot(view, 0, "cur")}
+                    {placed && slot(nextView, dirSign, "next")}
                 </div>
             )}
 
