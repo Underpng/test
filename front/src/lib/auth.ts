@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from "react";
+import { refreshConnection } from "@/lib/appicon";
 
 export type AuthStatus = {
     enabled: boolean;
@@ -43,6 +44,9 @@ export async function refreshAuth(): Promise<AuthStatus | null> {
         const s = (await res.json()) as AuthStatus;
         rememberAccess(!s.enabled || s.authenticated);
         emit({ status: s, error: false });
+        // Before login the server refused to say where this connection is
+        // from; ask again now that it will answer.
+        if (!s.enabled || s.authenticated) refreshConnection();
         return s;
     } catch {
         emit({ status: state.status, error: true });

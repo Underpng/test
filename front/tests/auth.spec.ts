@@ -153,3 +153,22 @@ test("the login screen reads the PC's QR code with the camera and logs in", asyn
 	await expect(p.getByTestId("qr-scanner")).toBeHidden();
 	await phone.close();
 });
+
+test("after logging in from outside, the settings say remote, not LAN", async ({ browser, baseURL, page, isMobile }) => {
+	test.skip(isMobile, "one run is enough for the pairing flow");
+	const res = await page.request.post(baseURL + "/api/admin/pair", { headers: { "X-Shelf-Admin": "1" } });
+	const { code } = (await res.json()) as { code: string };
+	// Through Funnel: a public address, no Tailscale on the phone.
+	const phone = await browser.newContext({ extraHTTPHeaders: { "X-Forwarded-For": "198.51.100.40", "Tailscale-Funnel-Request": "?1" } });
+	const p = await phone.newPage();
+	// The app starts before login (the connection check is refused then).
+	await p.goto(baseURL + "/");
+	await expect(p.getByTestId("login-page")).toBeVisible();
+	await p.goto(`${baseURL}/pair?code=${code}`);
+	await expect(p.getByRole("heading", { name: "ホーム" })).toBeVisible();
+	await p.getByRole("button", { name: "設定" }).locator("visible=true").first().click();
+	await expect(p.getByTestId("icon-note")).toContainText("リモート接続");
+	await expect(p.getByTestId("icon-note")).not.toContainText("LAN内");
+	await expect(p.getByTestId("settings-quality-now")).toContainText("セーブモード");
+	await phone.close();
+});

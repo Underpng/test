@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { postJSON, refreshAuth, useAuth } from "@/lib/auth";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { getThemeSetting, setThemeSetting, type ThemeSetting } from "@/lib/theme";
-import { iconUrl, setIconSetting, useAppIcon, type IconSetting } from "@/lib/appicon";
+import { iconUrl, refreshConnection, setIconSetting, useAppIcon, type IconSetting } from "@/lib/appicon";
 import { loadOptions, type Quality } from "@/components/viewer/sheet";
 import { offlineSupported, useOffline } from "@/lib/offline";
 import { isHomeScreenApp, viewportInfo } from "@/lib/viewport";
@@ -108,7 +108,15 @@ export function SettingsButton({ className = "" }: { className?: string }) {
     };
 
     return (
-        <Sheet open={open} onOpenChange={setOpen}>
+        <Sheet
+            open={open}
+            onOpenChange={(o) => {
+                // Opening the settings re-checks home or away, so what they
+                // say is current.
+                if (o) refreshConnection();
+                setOpen(o);
+            }}
+        >
             <SheetTrigger asChild>
                 <button
                     type="button"
@@ -160,7 +168,9 @@ export function SettingsButton({ className = "" }: { className?: string }) {
                         />
                         <p className="text-xs leading-relaxed text-muted-foreground" data-testid="icon-note">
                             {icon.setting === "auto"
-                                ? `自動: いまは${icon.remote ? "リモート接続なので「おでかけ」" : "LAN内/Wi-Fi接続なので「おうち」"}です。`
+                                ? !icon.known
+                                    ? "自動: 接続のしかたを確認しています。"
+                                    : `自動: いまは${icon.remote ? "リモート接続なので「おでかけ」" : "LAN内/Wi-Fi接続なので「おうち」"}です。`
                                 : "選んだアイコンをいつも使います。"}
                             ホーム画面のアイコンは追加したときの絵のまま残るので、変えたいときは一度削除してから追加し直してください。
                         </p>
@@ -178,6 +188,11 @@ export function SettingsButton({ className = "" }: { className?: string }) {
                                 { value: "saver", label: "セーブ" },
                             ]}
                         />
+                        {quality === "auto" && icon.known && (
+                            <p className="text-sm font-medium" data-testid="settings-quality-now">
+                                {icon.remote ? "いまはリモート接続なので、セーブモードで表示しています。" : "いまはLAN内/Wi-Fi接続なので、クオリティモードで表示しています。"}
+                            </p>
+                        )}
                         <p className="text-xs leading-relaxed text-muted-foreground">
                             自動モードに設定すると、LAN内/Wi-Fi接続では元画像を読み込むクオリティモード、リモート接続では通信量を約半分に抑えるセーブモードになります。
                         </p>
