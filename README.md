@@ -46,11 +46,18 @@ powershell -ExecutionPolicy Bypass -File scripts\install-autostart.ps1
 
 ### 家の外から読む（Tailscale）
 
-[Tailscale](https://tailscale.com/) を使うと、自分の端末同士だけを暗号化してつなげます。ポート開放は不要で、他人からは届きません（このサーバーにはログイン機能が無いので、ルーターのポート開放やトンネルでネットに公開するのはやめてください）。
+[Tailscale](https://tailscale.com/) を PC に入れると、家の外からも読めます。ルーターのポート開放は不要です。
 
-1. PC と iPhone の両方に Tailscale を入れ、同じアカウントでログインする。
-2. iPhone の Safari で `http://<PC の名前>:50080` を開いてホーム画面に追加する（PC の名前は Tailscale アプリの端末一覧に出ます）。この URL は家の中でも外でも使えます。
-3. iPhone では VPN は同時に 1 つしか使えません。他の VPN アプリをオンにすると Tailscale が切れます。
+**スマホに Tailscale を入れない場合（Funnel）**
+
+1. PC に Tailscale を入れてログインし、PC で `tailscale funnel --bg 50080` を実行する。初回は表示されるリンクを開いて HTTPS と Funnel を許可します。
+2. `https://<PC の名前>.<tailnet>.ts.net` がインターネットから開けるようになります。ログインしていない人に見えるのはログイン画面だけです。本のデータは見えず、管理画面は PC からしか開けません。
+3. スマホでそのアドレスを開き、ログイン画面の「QR コードを読み取る」で PC の管理画面の QR コードを映すとログインできます。ホーム画面に追加したアプリの中からも同じ方法でログインできます。
+4. 公開をやめるときは `tailscale funnel --https=443 off` を実行します。
+
+**スマホにも Tailscale を入れる場合**
+
+PC と iPhone の両方に Tailscale を入れて同じアカウントでログインすれば、Funnel なしで `https://<PC の名前>.<tailnet>.ts.net`（PC で `tailscale serve --bg 50080`）または `http://<PC の名前>:50080` が開けます。自分の Tailscale の端末からならログインは不要です。iPhone では VPN は同時に 1 つしか使えません。
 
 ### 通信量の節約
 
