@@ -25,6 +25,13 @@ Start-Sleep -Milliseconds 500
 
 Copy-Item (Join-Path $dist 'shelf.exe') $Target -Force
 Copy-Item (Join-Path $dist 'shelfw.exe') $Target -Force
+# Run each new exe once. Windows Defender inspects a new program's memory the
+# first time it runs, and that touches a 32 MB buffer Go keeps for FIPS mode
+# (crypto/internal/fips140/drbg), leaving the server 32 MB heavier until its
+# next restart. A throwaway run takes that hit instead.
+foreach ($exe in 'shelf.exe', 'shelfw.exe') {
+    Start-Process -FilePath (Join-Path $Target $exe) -ArgumentList '-version' -WindowStyle Hidden -Wait
+}
 Copy-Item (Join-Path $PSScriptRoot 'install-autostart.ps1') (Join-Path $Target 'scripts') -Force
 Copy-Item (Join-Path $PSScriptRoot 'setup-firewall.ps1') (Join-Path $Target 'scripts') -Force
 
