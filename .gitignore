@@ -1,9 +1,9 @@
 .DS_Store
-books/
-db/
-cache/
-data/
-dist/
+/books/
+/db/
+/cache/
+/data/
+/dist/
 node_modules/
 .devcontainer/
 front/dist/

@@ -2,12 +2,17 @@ package library
 
 import (
 	"path/filepath"
+	"runtime"
 	"testing"
 )
 
 func TestResolveRejectsEscape(t *testing.T) {
 	root := filepath.Join("C:", "lib")
-	for _, bad := range []string{"/../x", "../x", "/a/../../x", "C:/Windows"} {
+	bad := []string{"/../x", "../x", "/a/../../x"}
+	if runtime.GOOS == "windows" {
+		bad = append(bad, "C:/Windows") // a drive path is only absolute on Windows
+	}
+	for _, bad := range bad {
 		if _, err := Resolve(root, bad); err == nil {
 			t.Errorf("expected error for %q", bad)
 		}
