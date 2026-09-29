@@ -22,6 +22,7 @@ import (
 	_ "golang.org/x/image/webp"
 
 	"shelf/internal/archive"
+	"shelf/internal/pdf"
 )
 
 type Options struct {
@@ -41,10 +42,8 @@ func Extract(src, bookType, dst string, opt Options) error {
 	var data []byte
 	var err error
 	switch bookType {
-	case "CBZ":
-		data, err = firstZipImage(src)
-	case "CBR":
-		data, err = firstRarImage(src, opt.SevenZip)
+	case "CBZ", "CBR":
+		data, err = firstArchiveImage(src, bookType, opt.SevenZip)
 	case "EPUB":
 		data, err = epubCover(src)
 	case "PDF":
@@ -109,28 +108,18 @@ func shrink(img image.Image, size int) image.Image {
 	return dst
 }
 
-func firstZipImage(src string) ([]byte, error) {
-	z, err := archive.OpenZip(src)
+// firstArchiveImage returns the first page of a comic archive. The
+// container format is sniffed, so a ZIP with a .cbr name still works.
+func firstArchiveImage(src, bookType, sevenZip string) ([]byte, error) {
+	b, err := archive.Open(strings.ToLower(bookType), sevenZip, src)
 	if err != nil {
 		return nil, err
 	}
-	defer z.Close()
-	if len(z.Pages) == 0 {
+	defer b.Close()
+	if b.Len() == 0 {
 		return nil, errors.New("no images in archive")
 	}
-	data, _, err := z.Page(0)
-	return data, err
-}
-
-func firstRarImage(src, sevenZip string) ([]byte, error) {
-	r, err := archive.OpenRar(sevenZip, src)
-	if err != nil {
-		return nil, err
-	}
-	if len(r.Pages) == 0 {
-		return nil, errors.New("no images in archive")
-	}
-	data, _, err := r.Page(0)
+	data, _, err := b.Page(0)
 	return data, err
 }
 
@@ -218,10 +207,30 @@ func epubCoverEntry(src string) string {
 }
 
 // pdfCover renders page one through poppler's pdftoppm when available.
+// Without it, the first page-sized image embedded in the file is used,
+// which is the whole page for scanned books.
 func pdfCover(src, dst string, opt Options) error {
 	if opt.PdfToPpm == "" {
-		return fmt.Errorf("pdf cover: %w (pdftoppm)", ErrNoTool)
+		return pdfEmbeddedCover(src, dst, opt)
 	}
+	if err := pdfRenderedCover(src, dst, opt); err != nil {
+		if e2 := pdfEmbeddedCover(src, dst, opt); e2 == nil {
+			return nil
+		}
+		return err
+	}
+	return nil
+}
+
+func pdfEmbeddedCover(src, dst string, opt Options) error {
+	img, err := pdf.FirstImage(src, pdf.Options{})
+	if err != nil {
+		return fmt.Errorf("pdf cover: %w", err)
+	}
+	return Save(img, dst, opt)
+}
+
+func pdfRenderedCover(src, dst string, opt Options) error {
 	prefix := dst + ".tmp"
 	cmd := exec.Command(opt.PdfToPpm, "-f", "1", "-l", "1", "-r", "72", "-jpeg", "-singlefile", src, prefix)
 	if out, err := cmd.CombinedOutput(); err != nil {

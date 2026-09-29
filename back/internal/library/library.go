@@ -89,9 +89,10 @@ func TypeOf(name string) string {
 		return "EPUB"
 	case ".pdf":
 		return "PDF"
-	case ".cbz":
+	case ".cbz", ".zip":
 		return "CBZ"
-	case ".cbr":
+	case ".cbr", ".rar", ".cb7":
+		// CB7 (7z) is served through the same 7-Zip-backed path as CBR.
 		return "CBR"
 	}
 	return ""
@@ -105,6 +106,7 @@ var imageMimes = map[string]string{
 	".gif":  "image/gif",
 	".bmp":  "image/bmp",
 	".avif": "image/avif",
+	".jxl":  "image/jxl",
 }
 
 // ImageMime returns the MIME type for an image filename.

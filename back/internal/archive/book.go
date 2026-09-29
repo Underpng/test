@@ -10,8 +10,18 @@ type Book interface {
 	Close() error
 }
 
-// Open opens a CBZ ("cbz") or CBR ("cbr") file.
+// Open opens a comic archive. kind is the API kind ("cbz" or "cbr") and
+// only decides the fallback when the file's magic bytes are unreadable:
+// a ZIP named .cbr opens as a ZIP and vice versa.
 func Open(kind, sevenZip, path string) (Book, error) {
+	switch Sniff(path) {
+	case FormatZip:
+		return OpenZip(path)
+	case FormatRar:
+		return OpenRar(sevenZip, path)
+	case FormatSevenZ:
+		return OpenSevenZ(sevenZip, path)
+	}
 	switch kind {
 	case "cbz":
 		return OpenZip(path)
@@ -22,8 +32,3 @@ func Open(kind, sevenZip, path string) (Book, error) {
 }
 
 func (z *Zip) Len() int { return len(z.Pages) }
-
-func (r *Rar) Len() int { return len(r.Pages) }
-
-// Close is a no-op: pages are extracted by separate 7-Zip processes.
-func (r *Rar) Close() error { return nil }

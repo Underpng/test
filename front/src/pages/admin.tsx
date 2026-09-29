@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { KeyRound, Laptop, QrCode, RefreshCw, Trash2, Wifi } from "lucide-react";
+import { KeyRound, Laptop, Library, QrCode, RefreshCw, Trash2, Wifi } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Illustration } from "@/components/illustration";
@@ -185,6 +185,90 @@ function PasswordPanel({ passwordSet, onChange }: { passwordSet: boolean; onChan
     );
 }
 
+// ----- library -----
+
+type Status = {
+    books: number;
+    booksDir: string;
+    sevenZip: boolean;
+    lastScan: { at: string; added: number; updated: number; deleted: number; duration: string };
+};
+
+function LibraryPanel() {
+    const [status, setStatus] = useState<Status | null>(null);
+    const [scanning, setScanning] = useState(false);
+    const [msg, setMsg] = useState<string | null>(null);
+
+    const load = useCallback(async () => {
+        const res = await fetch("/api/status", { cache: "no-store" });
+        if (res.ok) {
+            const s = (await res.json()) as Status;
+            setStatus(s);
+            return s;
+        }
+        return null;
+    }, []);
+
+    useEffect(() => {
+        load();
+    }, [load]);
+
+    const rescan = async () => {
+        setMsg(null);
+        setScanning(true);
+        const before = status?.lastScan.at ?? "";
+        const res = await fetch("/api/rescan", { method: "POST", headers: { "X-Shelf-Admin": "1" } });
+        if (!res.ok) {
+            setScanning(false);
+            setMsg("再スキャンを開始できませんでした。");
+            return;
+        }
+        // The scan runs in the background; wait for the status to show a newer run.
+        for (let i = 0; i < 150; i++) {
+            await new Promise((r) => window.setTimeout(r, 2000));
+            const s = await load();
+            if (s && s.lastScan.at !== before) {
+                setMsg(`完了: 追加 ${s.lastScan.added} / 更新 ${s.lastScan.updated} / 削除 ${s.lastScan.deleted}（${s.lastScan.duration}）`);
+                setScanning(false);
+                return;
+            }
+        }
+        setScanning(false);
+        setMsg("スキャンはまだ続いています。しばらくしてから再読み込みしてください。");
+    };
+
+    if (!status) return null;
+    const never = !status.lastScan.at || status.lastScan.at.startsWith("0001");
+    return (
+        <div className="space-y-3">
+            <p className="text-sm leading-relaxed text-muted-foreground">
+                本のフォルダは 10 分ごとに自動で見に行きます。本を入れた直後に反映したいときはここから再スキャンできます。
+            </p>
+            <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
+                <dt className="text-muted-foreground">フォルダ</dt>
+                <dd className="break-all" data-testid="library-dir">
+                    {status.booksDir}
+                </dd>
+                <dt className="text-muted-foreground">本の数</dt>
+                <dd data-testid="library-count">{status.books}</dd>
+                <dt className="text-muted-foreground">最後のスキャン</dt>
+                <dd>{never ? "まだありません" : `${formatDate(status.lastScan.at)}（${status.lastScan.duration}）`}</dd>
+                <dt className="text-muted-foreground">CBR / CB7</dt>
+                <dd>{status.sevenZip ? "7-Zip を使用" : "RAR は内蔵デコーダー（7-Zip なし。CB7 は開けません）"}</dd>
+            </dl>
+            <Button onClick={rescan} disabled={scanning} data-testid="rescan-button">
+                <RefreshCw size={16} className={scanning ? "animate-spin" : ""} />
+                {scanning ? "スキャン中…" : "今すぐ再スキャン"}
+            </Button>
+            {msg && (
+                <p role="status" className="text-sm text-muted-foreground" data-testid="rescan-result">
+                    {msg}
+                </p>
+            )}
+        </div>
+    );
+}
+
 export default function AdminPage() {
     const [state, setState] = useState<AdminState | null>(null);
     const [forbidden, setForbidden] = useState(false);
@@ -253,6 +337,10 @@ export default function AdminPage() {
 
             <Section icon={<KeyRound size={20} />} title="パスワード">
                 <PasswordPanel passwordSet={state.passwordSet} onChange={load} />
+            </Section>
+
+            <Section icon={<Library size={20} />} title="蔵書">
+                <LibraryPanel />
             </Section>
 
             <Section icon={<Wifi size={20} />} title="LAN内/Wi-Fi接続">

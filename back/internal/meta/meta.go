@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"shelf/internal/archive"
+	"shelf/internal/pdf"
 )
 
 type Info struct {
@@ -74,10 +75,27 @@ func epubMeta(src string) Info {
 	return info
 }
 
+// pdfMeta prefers poppler's pdfinfo (it understands compressed object
+// streams) and otherwise reads the Info dictionary / XMP itself.
 func pdfMeta(src, pdfInfo string) Info {
-	if pdfInfo == "" {
+	if pdfInfo != "" {
+		if info := pdfInfoTool(pdfInfo, src); info.Title != "" {
+			return info
+		}
+	}
+	native, err := pdf.ReadInfo(src)
+	if err != nil {
 		return Info{}
 	}
+	info := Info{Title: native.Title}
+	if native.Author != "" {
+		info.Keywords = append(info.Keywords, native.Author)
+	}
+	info.Keywords = append(info.Keywords, native.Keywords...)
+	return info
+}
+
+func pdfInfoTool(pdfInfo, src string) Info {
 	out, err := exec.Command(pdfInfo, src).Output()
 	if err != nil {
 		return Info{}
