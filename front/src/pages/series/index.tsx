@@ -11,7 +11,7 @@ export default function SeriesPage() {
 	return (
 		<div className="mx-auto max-w-6xl space-y-5 px-4 py-4 md:px-8 md:py-8">
 			<div className="flex flex-wrap items-center gap-3">
-				<h1 className="flex-1 text-2xl font-semibold md:text-3xl">シリーズ</h1>
+				<h1 className="flex-1 text-2xl font-bold tracking-tight md:text-3xl">シリーズ</h1>
 				<SortControls
 					sortKey={sortKey}
 					sortOrder={sortOrder}

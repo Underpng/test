@@ -16,7 +16,7 @@ export default function SavedPage() {
 
 	return (
 		<div className="mx-auto max-w-6xl space-y-6 px-4 py-4 md:px-8 md:py-8">
-			<h1 className="text-2xl font-semibold md:text-3xl">この端末に保存</h1>
+			<h1 className="text-2xl font-bold tracking-tight md:text-3xl">この端末に保存</h1>
 
 			{!offlineSupported() ? (
 				<section className="space-y-3 rounded-3xl bg-surface-low p-5 text-sm leading-relaxed" data-testid="offline-unsupported">

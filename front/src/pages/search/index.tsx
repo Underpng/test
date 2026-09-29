@@ -27,7 +27,7 @@ export default function SearchPage() {
 			data-idle={idle}
 			className={`mx-auto max-w-6xl space-y-5 px-4 py-4 transition-[padding] duration-300 ease-out motion-reduce:transition-none md:px-8 md:py-8 ${idle ? "pt-[24svh]" : ""}`}
 		>
-			<h1 className="text-2xl font-semibold md:text-3xl">検索</h1>
+			<h1 className="text-2xl font-bold tracking-tight md:text-3xl">検索</h1>
 			<div className="flex flex-wrap items-center gap-3">
 				<label className="flex h-12 min-w-0 flex-1 items-center gap-3 rounded-full bg-surface-high px-4 focus-within:ring-2 focus-within:ring-ring">
 					<Search size={20} className="flex-shrink-0 text-muted-foreground" />

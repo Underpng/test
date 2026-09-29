@@ -328,7 +328,7 @@ export function EpubViewer({ path, title, initialCfi }: EpubViewerProps) {
                         <img src={illustrations.sleeping} alt="" className="mb-4 w-32 rounded-3xl [image-rendering:pixelated]" />
                         <p className="font-medium">本を開けません</p>
                         <p className="mt-2 text-sm text-neutral-300">{error}</p>
-                        <button type="button" onClick={toShelf} className="mt-5 rounded-full bg-white px-5 py-2 text-sm font-medium text-black">
+                        <button type="button" onClick={toShelf} className="mt-5 rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground">
                             本棚へ
                         </button>
                     </div>

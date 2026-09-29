@@ -32,22 +32,22 @@ function ContinueCard({ book }: { book: BookEntry }) {
 	const pct = Math.round(book.progress * 100)
 	const series = seriesName(book)
 	return (
-		<section className="flex gap-4 rounded-3xl bg-surface-low p-4 animate-in fade-in duration-300 motion-reduce:animate-none md:gap-6 md:p-6">
+		<section className="bg-glow flex gap-4 rounded-3xl p-4 animate-in fade-in duration-300 motion-reduce:animate-none md:gap-6 md:p-6">
 			<Link to={viewerUrl(book)} className="w-28 flex-shrink-0 md:w-36">
-				<div className="aspect-[2/3] overflow-hidden rounded-xl bg-surface-high shadow-md">
+				<div className="aspect-[2/3] overflow-hidden rounded-xl bg-surface-high shadow-lg ring-1 ring-black/5 dark:ring-white/10">
 					{book.cover && <img src={`/cover${book.cover}`} alt="" className="h-full w-full object-cover" />}
 				</div>
 			</Link>
 			<div className="flex min-w-0 flex-1 flex-col">
-				<p className="text-xs font-medium text-primary">続きから読む</p>
-				<h2 className="mt-1 line-clamp-2 text-lg font-semibold leading-snug md:text-2xl">{book.title}</h2>
+				<p className="text-xs font-semibold text-primary-ink">続きから読む</p>
+				<h2 className="mt-1 line-clamp-2 text-lg font-bold leading-snug md:text-2xl">{book.title}</h2>
 				{series && (
 					<Link to={folderUrl(book)} className="mt-1 flex items-center gap-0.5 text-sm text-muted-foreground hover:text-foreground">
 						{series}
 						<ChevronRight size={14} />
 					</Link>
 				)}
-				<div className="mt-3 h-1.5 overflow-hidden rounded-full bg-surface-highest">
+				<div className="mt-3 h-1.5 overflow-hidden rounded-full bg-foreground/10">
 					<div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
 				</div>
 				<p className="mt-1 text-xs text-muted-foreground">{pct}%</p>
@@ -70,7 +70,7 @@ function Shelf({ title, books, hint }: { title: string; books: BookEntry[]; hint
 	return (
 		<section>
 			<div className="mb-3 flex items-baseline gap-3">
-				<h2 className="text-lg font-semibold">{title}</h2>
+				<h2 className="text-lg font-bold">{title}</h2>
 				{hint && <p className="text-xs text-muted-foreground">{hint}</p>}
 			</div>
 			<Row>
@@ -87,7 +87,7 @@ function SavedShelf({ books }: { books: BookEntry[] }) {
 	return (
 		<section data-testid="saved-shelf">
 			<div className="mb-3 flex items-baseline gap-3">
-				<h2 className="text-lg font-semibold">この端末に保存</h2>
+				<h2 className="text-lg font-bold">この端末に保存</h2>
 				<Link to="/saved" className="ml-auto flex items-center text-sm text-muted-foreground hover:text-foreground">
 					すべて
 					<ChevronRight size={14} />
@@ -166,7 +166,7 @@ export default function HomePage() {
 
 	return (
 		<div className="mx-auto max-w-6xl space-y-8 px-4 py-4 md:px-8 md:py-8">
-			<h1 className="text-2xl font-semibold md:text-3xl">ホーム</h1>
+			<h1 className="text-2xl font-bold tracking-tight md:text-3xl">ホーム</h1>
 			{error && <ErrorCard detail={error} onRetry={retry} />}
 			{error && savedBooks.length > 0 && <SavedShelf books={savedBooks} />}
 			{!data && !error && <HomeSkeleton />}

@@ -15,13 +15,13 @@ function SeriesHeader({ info }: { info: SeriesInfo }) {
 	const c = info.continue;
 	const allRead = !c && info.finished === info.count && info.count > 0;
 	return (
-		<div className="flex flex-col gap-3 rounded-3xl bg-surface-low px-5 py-4 sm:flex-row sm:items-center sm:gap-4">
+		<div className="bg-glow flex flex-col gap-3 rounded-3xl px-5 py-4 sm:flex-row sm:items-center sm:gap-4">
 			<div className="min-w-0 flex-1">
 				<p className="whitespace-nowrap text-sm text-muted-foreground">
 					全 {info.count} 巻
 					{info.finished > 0 && ` · ${info.finished} 巻読了`}
 				</p>
-				<div className="mt-2 h-1.5 max-w-xs overflow-hidden rounded-full bg-surface-highest">
+				<div className="mt-2 h-1.5 max-w-xs overflow-hidden rounded-full bg-foreground/10">
 					<div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
 				</div>
 			</div>
@@ -37,7 +37,7 @@ function SeriesHeader({ info }: { info: SeriesInfo }) {
 			{allRead && (
 				<div className="flex items-center gap-3">
 					<Illustration src={illustrations.cheer} size="sm" className="rounded-2xl" />
-					<p className="text-sm font-medium text-primary">シリーズ完読！</p>
+					<p className="text-sm font-semibold text-primary-ink">シリーズ完読！</p>
 				</div>
 			)}
 		</div>
@@ -75,7 +75,7 @@ export default function RootPage() {
 				</nav>
 			)}
 			<div className="flex flex-wrap items-center gap-3">
-				<h1 className="min-w-0 flex-1 truncate text-2xl font-semibold md:text-3xl">{title}</h1>
+				<h1 className="min-w-0 flex-1 truncate text-2xl font-bold tracking-tight md:text-3xl">{title}</h1>
 				<SortControls
 					sortKey={sortKey}
 					sortOrder={sortOrder}

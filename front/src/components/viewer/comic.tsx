@@ -723,7 +723,7 @@ export function ComicViewer({ kind, path, title, initialPage = 1, startAtEnd = f
                             <button
                                 type="button"
                                 onClick={() => setReload((r) => r + 1)}
-                                className="rounded-full bg-white px-5 py-2 text-sm font-medium text-black"
+                                className="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground"
                             >
                                 再試行
                             </button>

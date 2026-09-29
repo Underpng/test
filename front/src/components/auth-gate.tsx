@@ -69,7 +69,7 @@ function LoginPage({ passwordSet }: { passwordSet: boolean }) {
             <div className="w-full max-w-sm space-y-6" data-testid="login-page">
                 <div className="flex flex-col items-center gap-3 text-center">
                     <img src="/favicon.png" alt="" className="h-20 w-20 rounded-3xl shadow-md" />
-                    <h1 className="text-2xl font-semibold">shelf にログイン</h1>
+                    <h1 className="text-2xl font-bold tracking-tight">shelf にログイン</h1>
                 </div>
 
                 <section className="space-y-2 rounded-3xl bg-surface-low p-5">

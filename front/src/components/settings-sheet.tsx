@@ -69,7 +69,7 @@ function Choice<T extends string>({
                         role="radio"
                         aria-checked={on}
                         onClick={() => onChange(o.value)}
-                        className={`flex flex-col items-center gap-1.5 rounded-2xl px-2 py-3 text-xs transition-colors ${on ? "bg-primary-container text-primary-container-foreground" : "bg-surface-high hover:bg-surface-highest"}`}
+                        className={`flex flex-col items-center gap-1.5 rounded-2xl px-2 py-3 text-xs transition-colors ${on ? "bg-primary-container font-semibold text-primary-container-foreground ring-1 ring-inset ring-primary/50" : "bg-surface-high hover:bg-surface-highest"}`}
                     >
                         {o.icon}
                         {o.label}

@@ -54,7 +54,7 @@ export function BottomNav() {
     return (
         <nav
             aria-label="メインナビゲーション"
-            className="fixed inset-x-0 bottom-0 z-40 flex border-t border-border/60 bg-surface-low md:hidden"
+            className="fixed inset-x-0 bottom-0 z-40 flex border-t border-border/60 bg-background/90 backdrop-blur-xl md:hidden"
             style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
         >
             {items.map((it) => (
@@ -87,7 +87,7 @@ export function TopBar() {
             className="sticky top-0 z-30 flex h-14 items-center justify-between bg-background/85 px-4 backdrop-blur md:hidden"
             style={{ paddingTop: "env(safe-area-inset-top)", height: "calc(3.5rem + env(safe-area-inset-top))" }}
         >
-            <div className="flex items-center gap-2 font-semibold">
+            <div className="flex items-center gap-2 text-[17px] font-bold tracking-tight">
                 <Logo className="h-7 w-7 rounded-lg" />
                 shelf
             </div>

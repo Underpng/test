@@ -43,7 +43,7 @@ export function PageSlider({ value, min, max, step, dir, disabled, label, format
             {dragging && (
                 <div
                     data-testid="slider-bubble"
-                    className="pointer-events-none absolute bottom-full mb-3 -translate-x-1/2 whitespace-nowrap rounded-full bg-white px-3 py-1 text-sm font-semibold tabular-nums text-black shadow-lg"
+                    className="pointer-events-none absolute bottom-full mb-3 -translate-x-1/2 whitespace-nowrap rounded-full bg-primary px-3 py-1 text-sm font-bold tabular-nums text-primary-foreground shadow-lg"
                     style={{ left: `${pct}%` }}
                 >
                     {format(v)}

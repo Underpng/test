@@ -3,44 +3,50 @@
 @tailwind utilities;
 
 /*
-  Material 3 style tokens with a warm (orange) seed. Values are HSL triplets
+  Material 3 style tokens around a bright orange. Values are HSL triplets
   so Tailwind can apply opacity modifiers (see tailwind.config.js).
   Light values live on :root, dark ones under .dark (set by lib/theme.ts
   from the OS preference or the user's choice).
+
+  The surfaces are close to neutral on purpose: a darkened orange is brown,
+  so orange only appears as the vivid fill (--primary) and as text
+  (--primary-ink, deeper on light backgrounds so small labels stay legible).
 */
 @layer base {
   :root {
     /* surfaces (tonal elevation: low -> highest) */
-    --background: 24 100% 98%;          /* surface        #FFF8F5 */
-    --surface-low: 22 80% 96%;          /* container-low  #FDF1EB */
-    --surface: 20 55% 94%;              /* container      #F7EBE5 */
-    --surface-high: 20 45% 91%;         /* container-high #F1E4DE */
-    --surface-highest: 20 40% 89%;      /* container-highest */
-    --foreground: 15 22% 11%;           /* on-surface     #221A16 */
-    --muted-foreground: 14 12% 33%;     /* on-surface-variant #5D4038-ish */
+    --background: 30 33% 99%;           /* #FDFCFB */
+    --surface-low: 30 20% 96.5%;        /* #F8F6F4 */
+    --surface: 30 16% 94%;
+    --surface-high: 30 14% 91.5%;       /* #EDEAE7 */
+    --surface-highest: 30 12% 88%;
+    --foreground: 20 14% 10%;           /* #1D1816 */
+    --muted-foreground: 20 6% 40%;      /* #6C6460 */
 
     --card: var(--surface-low);
     --card-foreground: var(--foreground);
-    --popover: var(--surface-high);
+    --popover: var(--background);
     --popover-foreground: var(--foreground);
 
-    /* primary: warm orange */
-    --primary: 20 90% 42%;              /* #CC4A0B */
+    /* primary: bright orange, the same in both themes */
+    --primary: 23 100% 51%;             /* #FF6305 */
     --primary-foreground: 0 0% 100%;
-    --primary-container: 22 100% 90%;   /* #FFDBCB */
-    --primary-container-foreground: 20 100% 11%;
+    --primary-ink: 20 100% 40%;         /* #CC4400, 4.8:1 on white */
+    --primary-container: 28 100% 92%;   /* #FFE8D6 */
+    --primary-container-foreground: 20 100% 34%;
+    --glow: 0.18;                       /* orange wash on hero cards */
 
-    --secondary: 20 30% 92%;            /* secondary-container */
-    --secondary-foreground: 18 40% 18%;
+    --secondary: var(--surface-high);
+    --secondary-foreground: 20 14% 16%;
     --muted: var(--surface);
-    --accent: var(--primary-container);
-    --accent-foreground: var(--primary-container-foreground);
+    --accent: var(--surface-high);
+    --accent-foreground: var(--foreground);
 
-    --destructive: 0 70% 45%;
+    --destructive: 0 72% 48%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 20 25% 84%;               /* outline-variant */
-    --input: 20 25% 84%;
+    --border: 30 12% 87%;               /* outline-variant */
+    --input: 30 12% 84%;
     --ring: var(--primary);
 
     --radius: 1rem;
@@ -59,35 +65,38 @@
   }
 
   .dark {
-    --background: 15 30% 7%;            /* #170F0B */
-    --surface-low: 16 22% 11%;
-    --surface: 16 18% 14%;
-    --surface-high: 17 15% 18%;
-    --surface-highest: 17 13% 22%;
-    --foreground: 20 45% 91%;           /* #F1DFD8 */
-    --muted-foreground: 20 18% 70%;
+    --background: 24 6% 7%;             /* #131211 */
+    --surface-low: 24 5% 10.5%;
+    --surface: 24 5% 13%;
+    --surface-high: 24 5% 16.5%;        /* #2C2A28 */
+    --surface-highest: 24 5% 21%;
+    --foreground: 30 20% 95%;           /* #F4F2EF */
+    --muted-foreground: 30 6% 66%;      /* #AEA8A3 */
 
     --card: var(--surface-low);
     --card-foreground: var(--foreground);
     --popover: var(--surface-high);
     --popover-foreground: var(--foreground);
 
-    --primary: 24 100% 78%;             /* #FFB690 */
-    --primary-foreground: 20 100% 16%;
-    --primary-container: 20 90% 26%;    /* #7A3300 */
-    --primary-container-foreground: 22 100% 90%;
+    --primary: 23 100% 51%;
+    --primary-foreground: 0 0% 100%;
+    --primary-ink: 25 100% 62%;         /* #FF8B3D */
+    /* translucent: an orange glow over the surface, not a brown fill */
+    --primary-container: 23 100% 55% / 0.2;
+    --primary-container-foreground: 26 100% 66%;
+    --glow: 0.13;                       /* stronger reads as brown */
 
-    --secondary: 18 28% 27%;
-    --secondary-foreground: 20 45% 88%;
+    --secondary: var(--surface-high);
+    --secondary-foreground: 30 20% 92%;
     --muted: var(--surface);
-    --accent: var(--primary-container);
-    --accent-foreground: var(--primary-container-foreground);
+    --accent: var(--surface-high);
+    --accent-foreground: var(--foreground);
 
-    --destructive: 0 70% 60%;
+    --destructive: 0 80% 62%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 17 12% 30%;
-    --input: 17 12% 30%;
+    --border: 24 5% 21%;
+    --input: 24 5% 26%;
     --ring: var(--primary);
 
     --sidebar-background: var(--surface-low);
@@ -122,6 +131,16 @@
   body {
     @apply bg-background text-foreground;
     overscroll-behavior-y: none;
+  }
+}
+
+/* Hero cards (continue reading, series header): a wash of orange from
+   the top right corner over the raised surface. */
+@layer components {
+  .bg-glow {
+    background:
+      radial-gradient(360px 220px at 100% 0%, hsl(var(--primary) / var(--glow)) 0%, transparent 100%),
+      hsl(var(--surface-low));
   }
 }
 

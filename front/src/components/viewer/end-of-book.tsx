@@ -29,7 +29,7 @@ function Neighbor({ book, backwards, onOpen }: { book: BookEntry; backwards: boo
                     {book.cover && <img src={`/cover${book.cover}`} alt="" className="h-full w-full object-cover" />}
                 </div>
             </button>
-            <p className="mt-6 text-xs font-medium tracking-wider text-white/50">{backwards ? "前の巻" : "次の巻"}</p>
+            <p className="mt-6 text-xs font-semibold tracking-wider text-primary-ink">{backwards ? "前の巻" : "次の巻"}</p>
             <p className="mt-1.5 line-clamp-2 text-xl font-semibold leading-snug" title={book.title}>
                 {shortTitle(book.title)}
             </p>
@@ -37,7 +37,7 @@ function Neighbor({ book, backwards, onOpen }: { book: BookEntry; backwards: boo
                 type="button"
                 onClick={onOpen}
                 autoFocus
-                className="mt-7 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-white text-[15px] font-semibold text-black transition hover:bg-white/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/25 focus-visible:ring-offset-2 focus-visible:ring-offset-black active:scale-[0.98]"
+                className="mt-7 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-primary text-[15px] font-bold text-primary-foreground shadow-[0_10px_30px_-10px_hsl(var(--primary))] transition hover:bg-primary/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-black active:scale-[0.98]"
             >
                 {backwards && <ArrowLeft size={18} />}
                 {backwards ? "前の巻を読む" : "続けて読む"}
@@ -132,7 +132,7 @@ export function EndOfBook({ mode, state, onOpen, onRetry, onClose, onShelf }: En
                 {showCount && (
                     <div className="mt-3 flex items-center gap-3" aria-label={`${data!.index} / ${data!.total} 巻`}>
                         <div className="h-[3px] w-24 overflow-hidden rounded-full bg-white/15">
-                            <div className="h-full rounded-full bg-white/80" style={{ width: `${(data!.index / data!.total) * 100}%` }} />
+                            <div className="h-full rounded-full bg-primary" style={{ width: `${(data!.index / data!.total) * 100}%` }} />
                         </div>
                         <span className="text-xs tabular-nums text-white/50">
                             {data!.index} / {data!.total}

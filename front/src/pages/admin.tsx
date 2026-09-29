@@ -301,7 +301,7 @@ export default function AdminPage() {
 
     return (
         <div className="mx-auto max-w-3xl space-y-5 px-4 py-4 md:px-8 md:py-8" data-testid="admin-page">
-            <h1 className="text-2xl font-semibold md:text-3xl">管理</h1>
+            <h1 className="text-2xl font-bold tracking-tight md:text-3xl">管理</h1>
 
             <Section icon={<QrCode size={20} />} title="スマホでログイン（QR コード）">
                 <PairingPanel addresses={state.addresses} />
