@@ -554,9 +554,13 @@ export function ComicViewer({ kind, path, title, initialPage = 1, startAtEnd = f
             ? `/book/${nextVolume.type.toLowerCase()}?path=${encodeURIComponent(nextVolume.path)}&page=1${qualityParam(options.quality)}`
             : null;
 
+    // Slots are keyed by the pages they show, not by their role: after a turn
+    // the page that waited beside the screen slides in as the same, already
+    // decoded image. A new <img> in its place would show the black
+    // background until Safari had decoded it again.
     const slot = (pages: number[] | null, offset: number, role: "prev" | "cur" | "next") =>
         pages && (
-            <div key={role} className="absolute inset-0" style={{ transform: `translate3d(${offset * 100}%, 0, 0)` }}>
+            <div key={pages.join("-")} data-slot={role} className="absolute inset-0" style={{ transform: `translate3d(${offset * 100}%, 0, 0)` }}>
                 <div ref={role === "cur" ? zoomRef : undefined} className="flex h-full w-full items-center justify-center" style={{ paddingTop: "var(--vgap, 0px)" }}>
                     {(direction === "rtl" ? [...pages].reverse() : pages).map((p) => (
                         <img
@@ -564,6 +568,8 @@ export function ComicViewer({ kind, path, title, initialPage = 1, startAtEnd = f
                             src={pageUrl(p)}
                             alt=""
                             draggable={false}
+                            // Decode the neighbours before they are swiped in.
+                            onLoad={(e) => e.currentTarget.decode?.().catch(() => undefined)}
                             onError={role === "cur" ? () => setPageError(true) : undefined}
                             className="select-none"
                             style={{

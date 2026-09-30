@@ -56,6 +56,24 @@ test.describe("comic viewer", () => {
 		await page.keyboard.press("PageUp");
 		await expect(indicator).toHaveText(/^1 \/ \d+$/);
 	});
+
+	// A new <img> would stay black on the phone until decoded, so a turn must
+	// bring in the very image that waited beside the screen.
+	test("a turned-to page reuses the image that waited beside the screen", async ({ page }) => {
+		const book = await findFirstCbz(page);
+		test.skip(book === null, "no CBZ in the library");
+
+		await page.goto(`/viewer/cbz?title=${encodeURIComponent(book!.title)}&path=${encodeURIComponent(book!.path)}&position=1`);
+		await expect(page.getByTestId("page-indicator")).toHaveText(/^1 \/ \d+$/, { timeout: 20_000 });
+		const waiting = page.locator("[data-slot=next] img").first();
+		await expect(waiting).toBeAttached();
+		await waiting.evaluate((img) => ((img as HTMLImageElement & { mark?: string }).mark = "waited"));
+
+		await page.keyboard.press("Space");
+		await expect(page.getByTestId("page-indicator")).toHaveText(/^2(-3)? \/ \d+$/);
+		const shown = page.locator("[data-slot=cur] img").first();
+		expect(await shown.evaluate((img) => (img as HTMLImageElement & { mark?: string }).mark)).toBe("waited");
+	});
 });
 
 test("home page groups reading, next volume and arrivals", async ({ page }) => {
