@@ -12,6 +12,7 @@ import { initViewportFix } from "./lib/viewport";
 import { registerServiceWorker } from "./lib/offline";
 import { initProgressSync } from "./api/progress";
 import { AuthGate } from "./components/auth-gate";
+import { CrashGuard } from "./components/crash-guard";
 
 import HomePage from "./pages/home";
 import SearchPage from "./pages/search";
@@ -51,25 +52,27 @@ function Gated() {
 
 root.render(
 	<React.StrictMode>
-		<BrowserRouter>
-			<Routes>
-				<Route path="/pair" element={<PairPage />} />
-				<Route element={<Gated />}>
-					<Route path="/" element={<Layout />}>
-						<Route index element={<HomePage />} />
-						<Route path="root/*" element={<RootPage />} />
-						<Route path="series" element={<SeriesPage />} />
-						<Route path="search" element={<SearchPage />} />
-						<Route path="admin" element={<AdminPage />} />
-						<Route path="saved" element={<SavedPage />} />
-						<Route path="*" element={<NotFoundPage />} />
+		<CrashGuard>
+			<BrowserRouter>
+				<Routes>
+					<Route path="/pair" element={<PairPage />} />
+					<Route element={<Gated />}>
+						<Route path="/" element={<Layout />}>
+							<Route index element={<HomePage />} />
+							<Route path="root/*" element={<RootPage />} />
+							<Route path="series" element={<SeriesPage />} />
+							<Route path="search" element={<SearchPage />} />
+							<Route path="admin" element={<AdminPage />} />
+							<Route path="saved" element={<SavedPage />} />
+							<Route path="*" element={<NotFoundPage />} />
+						</Route>
+						<Route path="/viewer/pdf" element={<PDFViewerPage />} />
+						<Route path="/viewer/epub" element={<EPUBViewerPage />} />
+						<Route path="/viewer/cbr" element={<CBRViewerPage />} />
+						<Route path="/viewer/cbz" element={<CBZViewerPage />} />
 					</Route>
-					<Route path="/viewer/pdf" element={<PDFViewerPage />} />
-					<Route path="/viewer/epub" element={<EPUBViewerPage />} />
-					<Route path="/viewer/cbr" element={<CBRViewerPage />} />
-					<Route path="/viewer/cbz" element={<CBZViewerPage />} />
-				</Route>
-			</Routes>
-		</BrowserRouter>
+				</Routes>
+			</BrowserRouter>
+		</CrashGuard>
 	</React.StrictMode>
 );

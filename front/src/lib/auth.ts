@@ -37,9 +37,15 @@ export function hadAccess(): boolean {
     }
 }
 
+// A connection that neither answers nor fails counts as offline after this
+// long, so the app never waits on a blank screen.
+const STATUS_TIMEOUT_MS = 8000;
+
 export async function refreshAuth(): Promise<AuthStatus | null> {
+    const abort = new AbortController();
+    const timer = setTimeout(() => abort.abort(), STATUS_TIMEOUT_MS);
     try {
-        const res = await fetch("/api/auth/status", { cache: "no-store" });
+        const res = await fetch("/api/auth/status", { cache: "no-store", signal: abort.signal });
         if (!res.ok) throw new Error(String(res.status));
         const s = (await res.json()) as AuthStatus;
         rememberAccess(!s.enabled || s.authenticated);
@@ -51,6 +57,8 @@ export async function refreshAuth(): Promise<AuthStatus | null> {
     } catch {
         emit({ status: state.status, error: true });
         return null;
+    } finally {
+        clearTimeout(timer);
     }
 }
 

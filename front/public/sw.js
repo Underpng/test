@@ -55,7 +55,7 @@ self.addEventListener("fetch", (event) => {
     if (url.pathname.startsWith("/api/")) return;
 
     if (req.mode === "navigate") {
-        event.respondWith(page(req));
+        event.respondWith(page(event));
         return;
     }
     if (HASHED.test(url.pathname)) {
@@ -70,17 +70,32 @@ async function fromBooks(req, key) {
     return hit || fetch(req);
 }
 
+// A connection that neither answers nor fails (weak Wi-Fi, a stalled mobile
+// link) would keep the home-screen app on a blank screen, so the kept copy
+// takes over after this long.
+const PAGE_TIMEOUT_MS = 3000;
+
 // Navigations: fresh from the server when possible, the kept copy otherwise.
-async function page(req) {
+async function page(event) {
     const cache = await caches.open(SHELL);
-    try {
-        const res = await fetch(req);
+    const fresh = fetch(event.request).then((res) => {
         if (res.ok && (res.headers.get("Content-Type") || "").includes("text/html")) cache.put("/", res.clone());
         return res;
-    } catch (e) {
-        const hit = await cache.match("/");
-        if (hit) return hit;
-        throw e;
+    });
+    const hit = await cache.match("/");
+    if (!hit) return fresh;
+    // Let a slow answer still refresh the kept copy for next time.
+    event.waitUntil(fresh.catch(() => undefined));
+    let timer;
+    const slow = new Promise((resolve) => {
+        timer = setTimeout(() => resolve(hit), PAGE_TIMEOUT_MS);
+    });
+    try {
+        return await Promise.race([fresh, slow]);
+    } catch {
+        return hit;
+    } finally {
+        clearTimeout(timer);
     }
 }
 

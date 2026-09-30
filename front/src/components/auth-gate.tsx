@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Camera, KeyRound, QrCode } from "lucide-react";
+import { Camera, KeyRound, Loader2, QrCode } from "lucide-react";
 import { QrScanner, cameraAvailable } from "@/components/qr-scanner";
 import { Button } from "@/components/ui/button";
 import { ErrorCard } from "@/components/error-card";
@@ -18,10 +18,27 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
         // still open and the pages show their own connection errors.
         if (error && hadAccess()) return <>{children}</>;
         if (error) return <div className="mx-auto max-w-md p-6"><ErrorCard detail="サーバーに接続できません。" onRetry={() => refreshAuth()} /></div>;
-        return null;
+        return <Waiting />;
     }
     if (!status.enabled || status.authenticated) return <>{children}</>;
     return <LoginPage passwordSet={status.passwordSet} />;
+}
+
+// Shown while the server is asked whether this device may read. It usually
+// answers at once, so the spinner only appears when it is slow.
+function Waiting() {
+    const [shown, setShown] = useState(false);
+    useEffect(() => {
+        const t = setTimeout(() => setShown(true), 500);
+        return () => clearTimeout(t);
+    }, []);
+    if (!shown) return null;
+    return (
+        <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background text-muted-foreground" data-testid="auth-waiting">
+            <Loader2 size={36} className="animate-spin text-primary" />
+            <p className="text-sm">サーバーに接続しています…</p>
+        </div>
+    );
 }
 
 function LoginPage({ passwordSet }: { passwordSet: boolean }) {
